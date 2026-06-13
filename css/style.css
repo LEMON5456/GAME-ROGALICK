@@ -1,0 +1,319 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+body {
+  background: #0d1025;
+  color: #e8e8f0;
+  font-family: 'Segoe UI', system-ui, sans-serif;
+}
+
+#game-container {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+#game-canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  background: #12121f;
+  outline: none;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+}
+
+.hidden {
+  display: none !important;
+}
+
+.overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(5, 5, 15, 0.85);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 10;
+}
+
+.panel {
+  background: linear-gradient(135deg, rgba(26, 26, 46, 0.92) 0%, rgba(22, 33, 62, 0.92) 100%);
+  border: 1px solid #446;
+  border-radius: 12px;
+  padding: 32px 40px;
+  text-align: center;
+  max-width: 420px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+  background-size: cover;
+  background-position: center;
+}
+
+#menu-overlay .panel {
+  background-image: linear-gradient(135deg, rgba(26, 26, 46, 0.88) 0%, rgba(22, 33, 62, 0.88) 100%), url('../assets/Preview.png');
+  max-width: 480px;
+}
+
+#hub-overlay .panel {
+  background-image: linear-gradient(135deg, rgba(26, 26, 46, 0.82) 0%, rgba(22, 33, 62, 0.85) 100%), url('../assets/Sample.png');
+  max-width: 480px;
+}
+
+#shop-overlay .panel {
+  background-image: linear-gradient(135deg, rgba(26, 26, 46, 0.9) 0%, rgba(22, 33, 62, 0.92) 100%), url('../assets/Preview.png');
+}
+
+#meta-shop-overlay .panel {
+  background-image: linear-gradient(135deg, rgba(26, 26, 46, 0.9) 0%, rgba(22, 33, 62, 0.92) 100%), url('../assets/Preview.png');
+}
+
+.panel-wide {
+  max-width: 560px;
+}
+
+.panel h1 {
+  font-size: 2rem;
+  color: #7af;
+  margin-bottom: 8px;
+}
+
+.panel h2 {
+  font-size: 1.5rem;
+  color: #7af;
+  margin-bottom: 12px;
+}
+
+.subtitle {
+  color: #889;
+  margin-bottom: 8px;
+  font-size: 0.95rem;
+}
+
+.credit {
+  color: #667;
+  font-size: 0.75rem;
+  margin-bottom: 20px;
+}
+
+.panel p {
+  margin-bottom: 16px;
+  color: #aab;
+}
+
+button {
+  background: linear-gradient(180deg, #3a6 0%, #285 100%);
+  color: #fff;
+  border: none;
+  padding: 12px 28px;
+  font-size: 1rem;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: transform 0.1s, filter 0.1s;
+}
+
+button:hover {
+  filter: brightness(1.15);
+  transform: translateY(-1px);
+}
+
+button:active {
+  transform: translateY(0);
+}
+
+button:disabled {
+  background: #444;
+  cursor: not-allowed;
+  filter: none;
+  transform: none;
+}
+
+.btn-secondary {
+  background: linear-gradient(180deg, #468 0%, #346 100%);
+}
+
+.btn-secondary:hover {
+  filter: brightness(1.2);
+}
+
+#hud {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 5;
+}
+
+#hud-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  gap: 16px;
+}
+
+#hp-bar-wrap {
+  position: relative;
+  width: 180px;
+  height: 20px;
+  background: #222;
+  border-radius: 4px;
+  border: 1px solid #445;
+  overflow: hidden;
+}
+
+#hp-bar {
+  height: 100%;
+  width: 100%;
+  background: linear-gradient(90deg, #c33, #e55);
+  transition: width 0.2s;
+}
+
+#hp-text {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  font-weight: bold;
+  text-shadow: 0 1px 2px #000;
+}
+
+#ore-display {
+  font-size: 0.9rem;
+  color: #fc8;
+  font-weight: bold;
+}
+
+#planet-timer {
+  font-size: 1.2rem;
+  font-weight: bold;
+  color: #7df;
+  font-variant-numeric: tabular-nums;
+}
+
+#planet-timer.warning {
+  color: #f55;
+  animation: pulse 0.5s infinite alternate;
+}
+
+@keyframes pulse {
+  from { opacity: 1; }
+  to { opacity: 0.6; }
+}
+
+#hud-hints {
+  position: absolute;
+  bottom: 8px;
+  left: 0;
+  right: 0;
+  text-align: center;
+  font-size: 0.75rem;
+  color: #667;
+}
+
+#mining-progress {
+  position: absolute;
+  bottom: 36px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 120px;
+  height: 8px;
+  background: #222;
+  border-radius: 4px;
+  border: 1px solid #556;
+  overflow: hidden;
+}
+
+#mining-bar {
+  height: 100%;
+  width: 0%;
+  background: #fa4;
+  transition: width 0.05s linear;
+}
+
+#shop-items, #meta-items {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 16px 0;
+  text-align: left;
+}
+
+.shop-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 14px;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 6px;
+  border: 1px solid #334;
+}
+
+.shop-item.owned {
+  border-color: #3a5;
+}
+
+.shop-item.maxed {
+  opacity: 0.65;
+}
+
+.shop-level {
+  font-size: 0.8rem;
+  color: #7cf;
+  font-weight: normal;
+}
+
+.shop-item-next {
+  font-size: 0.75rem;
+  color: #6a8;
+  margin-top: 2px;
+}
+
+.shop-item-info {
+  flex: 1;
+}
+
+.shop-item-name {
+  font-weight: bold;
+  color: #adf;
+}
+
+.shop-item-desc {
+  font-size: 0.8rem;
+  color: #889;
+}
+
+.shop-item-price {
+  font-size: 0.85rem;
+  color: #fc8;
+  margin-right: 12px;
+}
+
+.shop-item button {
+  padding: 6px 14px;
+  font-size: 0.85rem;
+}
+
+.volume-row {
+  color: #889;
+  font-size: 0.85rem;
+}
+
+.volume-row input[type="range"] {
+  vertical-align: middle;
+  width: 100px;
+  accent-color: #3a6;
+}
