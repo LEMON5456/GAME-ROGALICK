@@ -25,11 +25,6 @@ export class Timer {
     return false;
   }
 
-  addTime(seconds) {
-    this.remaining += seconds;
-    this.max += seconds;
-  }
-
   format() {
     const s = Math.ceil(this.remaining);
     const m = Math.floor(s / 60);

@@ -66,6 +66,21 @@ export class Enemy {
         const speed = COMBAT.PROJECTILE_SPEED * 0.7;
         projectiles.push(new Projectile(ec.x, ec.y, dx / len, speed, 'spitter', dy / len * speed));
       }
+    } else if (this.type === 'kamikaze') {
+      const pc = center(player);
+      const ec = center(this);
+      const d = dist(ec.x, ec.y, pc.x, pc.y);
+      if (d < 250) {
+        const dx = pc.x - ec.x;
+        const dy = pc.y - ec.y;
+        const len = Math.sqrt(dx * dx + dy * dy) || 1;
+        this.vx = (dx / len) * this.speed;
+        this.vy = (dy / len) * this.speed;
+      } else {
+        this.vx = this.patrolDir * this.speed * 0.5;
+        this.vy = Math.min(this.vy + PHYSICS.GRAVITY * dt, PHYSICS.MAX_FALL);
+      }
+      moveWithCollisions(this, map, dt);
     }
   }
 
@@ -80,7 +95,7 @@ export class Enemy {
     const sprite = this.anim.getFrame();
     const flip = this.type === 'crawler' ? this.patrolDir < 0 : false;
     if (!sprites.drawScaled(ctx, sprite, this.x, this.y, this.w, this.h, flip)) {
-      ctx.fillStyle = this.type === 'crawler' ? COLORS.crawler : COLORS.spitter;
+      ctx.fillStyle = this.type === 'crawler' ? COLORS.crawler : this.type === 'kamikaze' ? '#ff8040' : COLORS.spitter;
       ctx.fillRect(this.x, this.y, this.w, this.h);
     }
 

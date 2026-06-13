@@ -4,6 +4,7 @@ import { center, dist } from '../world/Physics.js';
 import { Projectile } from './Projectile.js';
 import { sprites, SPRITES } from '../core/Sprites.js';
 import { Animation, getWalkFrames } from '../core/Animations.js';
+import { audio } from '../core/Audio.js';
 
 export class Flyer {
   constructor(x, y) {
@@ -49,6 +50,7 @@ export class Flyer {
       const len = Math.sqrt(dx * dx + dy * dy) || 1;
       const speed = COMBAT.PROJECTILE_SPEED * 0.65;
       projectiles.push(new Projectile(fc.x, fc.y, dx / len, speed, 'flyer', dy / len * speed));
+      audio.sfxFlyerShoot();
     }
   }
 
@@ -61,7 +63,7 @@ export class Flyer {
     if (this.dead) return;
     const frame = this.anim.getFrame();
     const flip = this.patrolDir < 0;
-    if (!sprites.drawScaled(ctx, { x: 0, y: 187 }, this.x, this.y, this.w, this.h, flip)) {
+    if (!sprites.drawScaled(ctx, frame, this.x, this.y, this.w, this.h, flip)) {
       ctx.fillStyle = '#80c0f0';
       ctx.fillRect(this.x, this.y, this.w, this.h);
     }

@@ -13,11 +13,12 @@ import { MenuUI } from '../ui/MenuUI.js';
 import { MetaShopUI } from '../ui/MetaShopUI.js';
 import { PLANETS, BOSS_PLANET, getPlanetsForSector, getSectorInfo } from '../data/planets.js';
 import { COLORS, PLANET_TIMER } from '../constants.js';
-import { placeEntitySafely, isOnGround } from '../world/Physics.js';
+import { placeEntitySafely, isOnGround, aabbOverlap } from '../world/Physics.js';
 import { SaveManager } from './SaveManager.js';
 import { audio } from './Audio.js';
 import { getBiome } from '../data/biomes.js';
-import { spawnMineParticles, spawnDeathParticles, spawnMuzzleFlash } from '../entities/Particle.js';
+import { spawnMineParticles, spawnDeathParticles, spawnMuzzleFlash, spawnLandingParticles } from '../entities/Particle.js';
+import { Pickup } from '../entities/Pickup.js';
 
 const STATE = {
   MENU: 'menu',
@@ -43,6 +44,7 @@ function createRunState() {
     phase: 'planets',
     sector: 'sector1',
     shopDiscount: 0,
+    kills: 0,
   };
 }
 
@@ -63,6 +65,7 @@ export class Game {
     this.run = null;
     this.map = null;
     this.enemies = [];
+    this.pickups = [];
     this.projectiles = [];
     this.boss = null;
     this.planetConfig = null;
@@ -74,6 +77,8 @@ export class Game {
     this.biome = 'space';
 
     this.meta = SaveManager.load();
+    this._playerWasGrounded = false;
+    this._landed = false;
 
     this.menuUI = new MenuUI({
       onStart: () => this.startRun(),
@@ -126,6 +131,7 @@ export class Game {
     this.menuUI.showHub(this.run, this.hubMessage, this.sectorInfo.name);
     this.hud.hide();
     this.particles = [];
+    this.pickups = [];
     audio.setBiome(this.biome);
     audio.startMusic(this.biome);
   }
@@ -153,10 +159,12 @@ export class Game {
     this.player.grounded = isOnGround(this.player, this.map);
     this.camera.snapTo(this.player.x + this.player.w / 2, this.player.y + this.player.h / 2);
     this.enemies = setupPlanetEnemies(this.planetConfig, this.map);
+    this.pickups = (this.map.pickups || []).map(p => new Pickup(p.x, p.y, p.type));
     this.projectiles = [];
     this.boss = null;
     this.mining.reset();
-    this.planetTimer.start(PLANET_TIMER + this.run.timerBonus);
+    const planetTimeBonus = this.planetConfig.timeBonus || 0;
+    this.planetTimer.start(PLANET_TIMER + this.run.timerBonus + planetTimeBonus);
     this.run.sessionOre = { iron: 0, crystal: 0 };
     this.state = STATE.PLANET;
     this.hud.show();
@@ -166,7 +174,7 @@ export class Game {
 
   loadBoss() {
     this.planetConfig = BOSS_PLANET;
-    this.map = generateBossArena();
+    this.map = generateBossArena(this.biome);
     this.camera.setWorldSize(this.map.width, this.map.height);
     placeEntitySafely(this.player, this.map, this.map.spawnX, this.map.spawnY);
     this.player.hp = this.run.hp;
@@ -182,6 +190,7 @@ export class Game {
     this.state = STATE.BOSS;
     this.hud.show();
     this.particles = [];
+    this.pickups = [];
     audio.playBossMusic();
   }
 
@@ -227,7 +236,14 @@ export class Game {
   onDeath() {
     this.state = STATE.GAME_OVER;
     this.hud.hide();
-    this.menuUI.showGameOver();
+    const stats = {
+      oreIron: this.run.oreBank.iron + this.run.sessionOre.iron,
+      oreCrystal: this.run.oreBank.crystal + this.run.sessionOre.crystal,
+      kills: this.run.kills || 0,
+      time: this.planetTimer ? this.planetTimer.format() : '00:00',
+      sector: this.sectorInfo ? this.sectorInfo.name : '—',
+    };
+    this.menuUI.showGameOver(stats);
     SaveManager.recordRunEnd(this.meta, 'lose', 0);
     audio.sfxLose();
     audio.stopMusic();
@@ -261,12 +277,33 @@ export class Game {
     this.menuUI.showHub(this.run, this.hubMessage, this.sectorInfo.name);
     this.hud.hide();
     this.particles = [];
+    this.pickups = [];
     audio.setBiome(this.biome);
     audio.startMusic(this.biome);
   }
 
+  _handleEscape() {
+    const metaOverlay = document.getElementById('meta-shop-overlay');
+    if (metaOverlay && !metaOverlay.classList.contains('hidden')) {
+      this.metaShopUI.hide();
+      return;
+    }
+    if (this.state === STATE.SHOP) {
+      this.shopUI.hide();
+      this.afterShop();
+    } else if (this.state === STATE.GAME_OVER) {
+      this.startRun();
+    } else if (this.state === STATE.WIN) {
+      this.startRun();
+    }
+  }
+
   update(dt) {
     this.time += dt;
+
+    if (this.input.escapePressed()) {
+      this._handleEscape();
+    }
 
     if (this.state === STATE.PLANET || this.state === STATE.BOSS) {
       this.updateGameplay(dt);
@@ -276,7 +313,15 @@ export class Game {
   }
 
   updateGameplay(dt) {
+    this._playerWasGrounded = this.player.grounded;
     this.player.update(this.input, this.map, dt, this.run);
+    if (this.player.justHurt) {
+      this.player.justHurt = false;
+      this.camera.shake(4, 0.15);
+    }
+    if (!this._playerWasGrounded && this.player.grounded && this.player.vy > 100) {
+      spawnLandingParticles(this.player.x + this.player.w / 2, this.player.y + this.player.h, this.particles);
+    }
 
     if (this.input.fireHeld()) {
       const muzzle = this.player.tryFire(this.projectiles, this.camera);
@@ -324,6 +369,16 @@ export class Game {
     for (const e of this.enemies) {
       e.update(dt, this.map, this.player, this.projectiles);
     }
+    for (const p of this.pickups) {
+      p.update(dt);
+      if (!p.dead && aabbOverlap(this.player, p)) {
+        p.dead = true;
+        if (p.type === 'health') {
+          this.player.hp = Math.min(this.player.hp + 25, this.player.maxHp);
+          spawnDeathParticles(p.x, p.y, p.w, p.h, '#44dd66', this.particles);
+        }
+      }
+    }
     if (this.boss) {
       this.boss.update(dt, this.map, this.player, this.projectiles, this.enemies);
       if (this.boss.phaseChanged) {
@@ -337,19 +392,9 @@ export class Game {
       }
     }
 
-    for (const e of this.enemies) {
-      if (e.dead) {
-        spawnDeathParticles(e.x, e.y, e.w, e.h, e.type === 'crawler' ? '#e04040' : '#a040e0', this.particles);
-        if (e.etherDrop > 0) {
-          SaveManager.awardEtherSerum(this.meta, e.etherDrop);
-          this.meta = SaveManager.load();
-        }
-      }
-    }
-
-    this.enemies = this.enemies.filter((e) => !e.dead);
     this.projectiles = updateProjectiles(this.projectiles, this.map, dt);
 
+    this.pickups = this.pickups.filter((p) => !p.dead);
     this.particles = this.particles.filter((p) => !p.dead);
     for (const p of this.particles) p.update(dt);
 
@@ -360,6 +405,22 @@ export class Game {
       return;
     }
 
+    for (const e of this.enemies) {
+      if (e.dead) {
+        spawnDeathParticles(e.x, e.y, e.w, e.h, e.type === 'crawler' ? '#e04040' : '#a040e0', this.particles);
+        this.run.kills = (this.run.kills || 0) + 1;
+        if (Math.random() < 0.4) {
+          const oreType = Math.random() < 0.6 ? 'iron' : 'crystal';
+          this.run.sessionOre[oreType] += 1;
+        }
+        if (e.etherDrop > 0) {
+          SaveManager.awardEtherSerum(this.meta, e.etherDrop);
+          this.meta = SaveManager.load();
+        }
+      }
+    }
+
+    this.enemies = this.enemies.filter((e) => !e.dead);
     this.run.hp = this.player.hp;
     this.camera.follow(this.player.x + this.player.w / 2, this.player.y + this.player.h / 2, dt);
 
@@ -392,12 +453,15 @@ export class Game {
     this.map.renderMarkers(ctx, this.time);
 
     for (const e of this.enemies) e.render(ctx);
+    for (const p of this.pickups) p.render(ctx);
     if (this.boss) this.boss.render(ctx, this.time);
     this.player.render(ctx, this.time);
     for (const p of this.projectiles) p.render(ctx);
     for (const p of this.particles) p.render(ctx);
 
     this.camera.restore(ctx);
+
+    this._drawExitBeacon(ctx);
 
     if (this.state === STATE.BOSS) {
       ctx.fillStyle = 'rgba(255,255,255,0.9)';
@@ -410,6 +474,41 @@ export class Game {
       ctx.textAlign = 'left';
       ctx.fillText(this.planetConfig.name, 16, 24);
     }
+  }
+
+  _drawExitBeacon(ctx) {
+    if (!this.map || this.state !== STATE.PLANET) return;
+    const ex = this.map.exitX;
+    const ey = this.map.exitY;
+    const cx = this.camera.x + this.canvas.width / 2;
+    const cy = this.camera.y + this.canvas.height / 2;
+    const dx = ex - cx;
+    const dy = ey - cy;
+    const dist = Math.sqrt(dx * dx + dy * dy);
+    if (dist < 200) return;
+    const angle = Math.atan2(dy, dx);
+    const pad = 60;
+    const hw = this.canvas.width / 2 - pad;
+    const hh = this.canvas.height / 2 - pad;
+    const t = Math.min(hw / Math.abs(Math.cos(angle) || 0.001), hh / Math.abs(Math.sin(angle) || 0.001));
+    const bx = this.canvas.width / 2 + Math.cos(angle) * t;
+    const by = this.canvas.height / 2 + Math.sin(angle) * t;
+    ctx.save();
+    ctx.translate(bx, by);
+    ctx.rotate(angle);
+    const pulse = 0.7 + Math.sin(this.time * 3) * 0.3;
+    ctx.fillStyle = `rgba(80, 255, 140, ${pulse})`;
+    ctx.beginPath();
+    ctx.moveTo(14, 0);
+    ctx.lineTo(-6, -8);
+    ctx.lineTo(-6, 8);
+    ctx.closePath();
+    ctx.fill();
+    ctx.fillStyle = `rgba(80, 255, 140, ${0.5 + pulse * 0.3})`;
+    ctx.font = '10px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('ВЫХОД', 0, -16);
+    ctx.restore();
   }
 
   renderBackground(ctx, bc) {

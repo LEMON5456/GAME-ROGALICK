@@ -25,6 +25,7 @@ export class Player {
     this.invincible = 0;
     this.hp = 100;
     this.maxHp = 100;
+    this.justHurt = false;
   }
 
   spawn(x, y, run) {
@@ -84,6 +85,7 @@ export class Player {
     if (this.invincible > 0) return false;
     this.hp -= amount;
     this.invincible = COMBAT.INVINCIBLE_TIME;
+    this.justHurt = true;
     return this.hp <= 0;
   }
 

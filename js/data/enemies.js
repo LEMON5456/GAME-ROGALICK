@@ -21,6 +21,17 @@ export const ENEMIES = {
     range: 320,
     etherDrop: 1,
   },
+  kamikaze: {
+    type: 'kamikaze',
+    name: 'Смертник',
+    w: 24,
+    h: 24,
+    hp: 15,
+    damage: 25,
+    speed: 160,
+    contact: true,
+    etherDrop: 1,
+  },
   flyer: {
     type: 'flyer',
     name: 'Летун',

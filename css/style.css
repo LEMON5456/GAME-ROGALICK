@@ -307,6 +307,27 @@ button:disabled {
   font-size: 0.85rem;
 }
 
+.run-stats {
+  margin: 12px 0;
+  text-align: left;
+  font-size: 0.85rem;
+}
+.stat-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 4px 8px;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+  color: #aab;
+}
+.stat-row span:last-child {
+  color: #fc8;
+  font-weight: bold;
+}
+.stat-line {
+  font-size: 0.85rem;
+  color: #7af;
+  margin-bottom: 4px;
+}
 .volume-row {
   color: #889;
   font-size: 0.85rem;

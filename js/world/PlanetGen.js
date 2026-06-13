@@ -1,14 +1,11 @@
-import { TILE, TILE_SIZE } from '../constants.js';
+import { TILE, TILE_SIZE, TUNNEL } from '../constants.js';
 import { TileMap } from './TileMap.js';
+
+const { CAVE_TOP, CAVE_BOTTOM, FLOOR_TY, CEILING_TY } = TUNNEL;
 
 function randInt(min, max) {
   return Math.floor(min + Math.random() * (max - min + 1));
 }
-
-const FLOOR_TY = 12;
-const CAVE_TOP = 8;
-const CAVE_BOTTOM = 11;
-const CEILING_TY = 7;
 
 export function generatePlanet(config, biome = 'space') {
   const { width = 120, height = 40, ironCount = 4, crystalCount = 1, hazards = false } = config;
@@ -28,8 +25,10 @@ export function generatePlanet(config, biome = 'space') {
   placeOres(map, TILE.ORE_IRON, ironCount);
   placeOres(map, TILE.ORE_CRYSTAL, crystalCount);
   placeSpawnOres(map);
+  const pickups = placePickups(map, width);
   removeFloatingBlocks(map, width, height);
 
+  map.pickups = pickups;
   return map;
 }
 
@@ -51,6 +50,17 @@ function carveMainTunnel(map, width) {
 
   for (let tx = 2; tx < width - 2; tx++) {
     map.set(tx, CEILING_TY, TILE.STONE);
+  }
+
+  for (let i = 0; i < randInt(2, 5); i++) {
+    const tx = randInt(20, width - 20);
+    const pocketH = randInt(2, 4);
+    for (let dy = 1; dy <= pocketH; dy++) {
+      const ty = CEILING_TY - dy;
+      if (ty < 1) break;
+      map.set(tx, ty, TILE.AIR);
+      map.set(tx + 1, ty, TILE.AIR);
+    }
   }
 }
 
@@ -194,10 +204,10 @@ function removeFloatingBlocks(map, width, height) {
   }
 }
 
-export function generateBossArena() {
+export function generateBossArena(biome = 'space') {
   const width = 60;
   const height = 30;
-  const map = new TileMap(width, height);
+  const map = new TileMap(width, height, biome);
 
   for (let ty = 0; ty < height; ty++) {
     for (let tx = 0; tx < width; tx++) {
@@ -221,6 +231,22 @@ export function generateBossArena() {
   map.exitY = 0;
 
   return map;
+}
+
+function placePickups(map, width) {
+  const pickups = [];
+  const count = randInt(1, 3);
+  for (let i = 0; i < count; i++) {
+    const tx = randInt(20, width - 20);
+    if (map.get(tx, FLOOR_TY) !== TILE.STONE) continue;
+    if (map.get(tx, FLOOR_TY - 1) !== TILE.AIR) continue;
+    pickups.push({
+      x: tx * TILE_SIZE,
+      y: (FLOOR_TY - 1) * TILE_SIZE,
+      type: 'health',
+    });
+  }
+  return pickups;
 }
 
 export function findEnemySpawns(map, count) {

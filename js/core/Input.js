@@ -61,6 +61,10 @@ export class Input {
     return !!this.keys[code];
   }
 
+  escapePressed() {
+    return this.isDown('Escape');
+  }
+
   left() {
     return this.isDown('KeyA') || this.isDown('ArrowLeft');
   }

@@ -56,6 +56,20 @@ export function spawnDeathParticles(x, y, w, h, color, particles) {
   }
 }
 
+export function spawnLandingParticles(x, y, particles) {
+  for (let i = 0; i < 4; i++) {
+    particles.push(new Particle(
+      x + (Math.random() - 0.5) * 20,
+      y,
+      (Math.random() - 0.5) * 60,
+      -Math.random() * 40,
+      'rgba(180,180,200,0.6)',
+      0.3 + Math.random() * 0.2,
+      2 + Math.random() * 2
+    ));
+  }
+}
+
 export function spawnMuzzleFlash(x, y, particles) {
   for (let i = 0; i < 3; i++) {
     particles.push(new Particle(

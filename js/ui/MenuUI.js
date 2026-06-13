@@ -10,6 +10,7 @@ export class MenuUI {
     this.winText = document.getElementById('win-text');
     this.btnSector2 = document.getElementById('btn-sector2');
 
+    this._retryCb = callbacks.onRetry;
     document.getElementById('btn-start').addEventListener('click', callbacks.onStart);
     document.getElementById('btn-deploy').addEventListener('click', callbacks.onDeploy);
     document.getElementById('btn-retry').addEventListener('click', callbacks.onRetry);
@@ -35,8 +36,18 @@ export class MenuUI {
     this.hub.classList.remove('hidden');
   }
 
-  showGameOver() {
+  showGameOver(stats = {}) {
     this.hideAll();
+    let html = '<p>Разлом поглощает галактику...</p>';
+    if (stats.sector) html += `<p class="stat-line">Сектор: ${stats.sector}</p>`;
+    html += '<div class="run-stats">';
+    html += `<div class="stat-row"><span>Добыто Fe:</span><span>${stats.oreIron || 0}</span></div>`;
+    html += `<div class="stat-row"><span>Добыто Cr:</span><span>${stats.oreCrystal || 0}</span></div>`;
+    html += `<div class="stat-row"><span>Врагов убито:</span><span>${stats.kills || 0}</span></div>`;
+    html += `<div class="stat-row"><span>Время:</span><span>${stats.time || '00:00'}</span></div>`;
+    html += '</div>';
+    this.gameover.querySelector('.panel').innerHTML = html + '<button id="btn-retry">Попробовать снова</button>';
+    document.getElementById('btn-retry').addEventListener('click', this._retryCb);
     this.gameover.classList.remove('hidden');
   }
 

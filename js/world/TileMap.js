@@ -1,9 +1,6 @@
-import { TILE, TILE_SIZE, COLORS } from '../constants.js';
+import { TILE, TILE_SIZE, COLORS, TUNNEL } from '../constants.js';
 import { sprites, SPRITES } from '../core/Sprites.js';
 import { getBiome } from '../data/biomes.js';
-
-const CAVE_TOP = 8;
-const CAVE_BOTTOM = 11;
 
 export class TileMap {
   constructor(width, height, biome = 'space') {
@@ -123,7 +120,7 @@ export class TileMap {
     const pulse = 0.75 + Math.sin(time * 3) * 0.25;
     const ex = this.exitX;
     const ey = this.exitY;
-    const portalH = (CAVE_BOTTOM - CAVE_TOP + 2) * TILE_SIZE;
+    const portalH = (TUNNEL.CAVE_BOTTOM - TUNNEL.CAVE_TOP + 2) * TILE_SIZE;
 
     ctx.save();
 

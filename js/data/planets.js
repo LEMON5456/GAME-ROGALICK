@@ -9,6 +9,7 @@ export const SECTOR_1 = {
       ironCount: 20,
       crystalCount: 18,
       hazards: false,
+      timeBonus: 0,
       enemies: [
         { type: 'crawler', count: 2 },
       ],
@@ -19,9 +20,11 @@ export const SECTOR_1 = {
       ironCount: 15,
       crystalCount: 28,
       hazards: true,
+      timeBonus: 20,
       enemies: [
         { type: 'crawler', count: 2 },
         { type: 'spitter', count: 1 },
+        { type: 'kamikaze', count: 1 },
       ],
     },
   ],
@@ -38,6 +41,7 @@ export const SECTOR_2 = {
       ironCount: 18,
       crystalCount: 22,
       hazards: true,
+      timeBonus: 10,
       enemies: [
         { type: 'crawler', count: 1 },
         { type: 'spitter', count: 1 },
@@ -50,10 +54,12 @@ export const SECTOR_2 = {
       ironCount: 22,
       crystalCount: 30,
       hazards: true,
+      timeBonus: 20,
       enemies: [
         { type: 'crawler', count: 2 },
         { type: 'spitter', count: 2 },
         { type: 'flyer', count: 1 },
+        { type: 'kamikaze', count: 1 },
       ],
     },
     {
@@ -62,10 +68,12 @@ export const SECTOR_2 = {
       ironCount: 28,
       crystalCount: 35,
       hazards: true,
+      timeBonus: 30,
       enemies: [
-        { type: 'crawler', count: 2 },
+        { type: 'crawler', count: 3 },
         { type: 'spitter', count: 2 },
         { type: 'flyer', count: 2 },
+        { type: 'kamikaze', count: 2 },
       ],
     },
   ],

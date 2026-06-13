@@ -30,9 +30,6 @@ export class Animation {
     return this.frames[idx];
   }
 
-  getFrameIndex() {
-    return Math.min(Math.floor(this.time / this.frameDuration), this.frames.length - 1);
-  }
 }
 
 export function getWalkFrames(spriteX, spriteY, stride = 17, count = 2) {
@@ -43,6 +40,4 @@ export function getWalkFrames(spriteX, spriteY, stride = 17, count = 2) {
   return frames;
 }
 
-export function getSingleFrame(spriteX, spriteY) {
-  return [{ x: spriteX, y: spriteY }];
-}
+
