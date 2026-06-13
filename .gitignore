@@ -1,0 +1,6 @@
+out.txt
+err.txt
+server_out.txt
+server_err.txt
+*.log
+__pycache__/

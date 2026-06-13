@@ -6,10 +6,12 @@ export class AudioManager {
     this.sfxGain = null;
     this.musicVolume = 0.3;
     this.sfxVolume = 0.5;
-    this.musicNode = null;
+    this.musicSource = null;
     this.musicPlaying = false;
     this.initialized = false;
     this.biome = 'space';
+    this.musicBuffer = null;
+    this._musicLoadAttempted = false;
   }
 
   init() {
@@ -215,44 +217,45 @@ export class AudioManager {
   startMusic(biome = 'space') {
     this.biome = biome;
     if (!this.ctx || this.musicPlaying) return;
+    if (this.musicBuffer) {
+      this._playBuffer();
+      return;
+    }
+    if (this._musicLoadAttempted) return;
+    this._musicLoadAttempted = true;
     this.musicPlaying = true;
-    this._playMusicLoop();
+
+    const url = 'assets/audio/bgm.mp3';
+    fetch(url)
+      .then((res) => {
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        return res.arrayBuffer();
+      })
+      .then((buffer) => this.ctx.decodeAudioData(buffer))
+      .then((decoded) => {
+        this.musicBuffer = decoded;
+        this._playBuffer();
+      })
+      .catch(() => {
+        this.musicPlaying = false;
+      });
   }
 
-  _playMusicLoop() {
-    if (!this.musicPlaying || !this.ctx) return;
-    const now = this.ctx.currentTime;
-
-    const baseFreq = this.biome === 'ice' ? 180 : this.biome === 'lava' ? 100 : 140;
-    const harmonics = this.biome === 'ice' ? [1, 2, 3, 5] : [1, 0.5, 2, 3];
-
-    const oscs = [];
-    harmonics.forEach((mult, i) => {
-      const osc = this.ctx.createOscillator();
-      const g = this.ctx.createGain();
-      osc.type = this.biome === 'ice' ? 'sine' : 'triangle';
-      osc.frequency.setValueAtTime(baseFreq * mult, now);
-      if (this.biome === 'space') {
-        osc.frequency.linearRampToValueAtTime(baseFreq * mult * 1.02, now + 4);
-      } else if (this.biome === 'ice') {
-        osc.frequency.linearRampToValueAtTime(baseFreq * mult * 0.98, now + 3);
-      }
-      g.gain.setValueAtTime(0.04, now);
-      g.gain.linearRampToValueAtTime(0.01, now + 4);
-      osc.connect(g);
-      g.connect(this.musicGain);
-      osc.start(now);
-      osc.stop(now + 4);
-      oscs.push({ osc, g });
-    });
-
-    setTimeout(() => {
-      this._playMusicLoop();
-    }, 3500);
+  _playBuffer() {
+    if (!this.ctx || !this.musicBuffer || !this.musicPlaying) return;
+    this.musicSource = this.ctx.createBufferSource();
+    this.musicSource.buffer = this.musicBuffer;
+    this.musicSource.loop = true;
+    this.musicSource.connect(this.musicGain);
+    this.musicSource.start(0);
   }
 
   stopMusic() {
     this.musicPlaying = false;
+    if (this.musicSource) {
+      try { this.musicSource.stop(); } catch {}
+      this.musicSource = null;
+    }
   }
 
   setBiome(biome) {
