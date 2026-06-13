@@ -5,18 +5,12 @@ import { audio } from '../core/Audio.js';
 export class MiningSystem {
   constructor() {
     this.active = false;
-    this.progress = 0;
-    this.targetTx = -1;
-    this.targetTy = -1;
-    this.targetType = null;
+    this.targets = [];
   }
 
   reset() {
     this.active = false;
-    this.progress = 0;
-    this.targetTx = -1;
-    this.targetTy = -1;
-    this.targetType = null;
+    this.targets = [];
   }
 
   miningPoint(player) {
@@ -25,7 +19,7 @@ export class MiningSystem {
     return { px, py };
   }
 
-  findNearbyOre(player, map) {
+  findNearbyOres(player, map, maxCount = 1) {
     const { px, py } = this.miningPoint(player);
     const range = MINING.RANGE;
     const rangeTiles = Math.ceil(range / TILE_SIZE);
@@ -33,8 +27,7 @@ export class MiningSystem {
     const ptx = Math.floor(px / TILE_SIZE);
     const pty = Math.floor(py / TILE_SIZE);
 
-    let closest = null;
-    let closestScore = Infinity;
+    const ores = [];
 
     for (let dy = -rangeTiles; dy <= rangeTiles; dy++) {
       for (let dx = -rangeTiles; dx <= rangeTiles; dx++) {
@@ -49,14 +42,12 @@ export class MiningSystem {
         if (d >= range) continue;
 
         const facingBonus = (player.facing > 0 ? tx >= ptx : tx <= ptx) ? 0 : 12;
-        const score = d + facingBonus;
-        if (score < closestScore) {
-          closestScore = score;
-          closest = { tx, ty, type: map.oreType(tile) };
-        }
+        ores.push({ tx, ty, type: map.oreType(tile), score: d + facingBonus });
       }
     }
-    return closest;
+
+    ores.sort((a, b) => a.score - b.score);
+    return ores.slice(0, maxCount);
   }
 
   update(input, player, map, run, dt) {
@@ -65,35 +56,42 @@ export class MiningSystem {
       return null;
     }
 
-    const ore = this.findNearbyOre(player, map);
-    if (!ore) {
+    const maxCount = run.multiMineCount || 1;
+    const ores = this.findNearbyOres(player, map, maxCount);
+    if (ores.length === 0) {
       this.reset();
       return null;
     }
 
-    if (this.targetTx !== ore.tx || this.targetTy !== ore.ty) {
-      this.targetTx = ore.tx;
-      this.targetTy = ore.ty;
-      this.targetType = ore.type;
-      this.progress = 0;
+    this.targets = this.targets.filter(t => ores.some(o => o.tx === t.tx && o.ty === t.ty));
+    for (const ore of ores) {
+      if (!this.targets.some(t => t.tx === ore.tx && t.ty === ore.ty)) {
+        this.targets.push({ tx: ore.tx, ty: ore.ty, type: ore.type, progress: 0 });
+      }
     }
 
-    const miningTime = MINING.BASE_TIME / (run.miningSpeedMult || 1);
-    this.progress += dt / miningTime;
     this.active = true;
+    const miningTime = MINING.BASE_TIME / (run.miningSpeedMult || 1);
+    for (const t of this.targets) {
+      t.progress += dt / miningTime;
+    }
 
-    if (this.progress >= 1) {
-      map.set(this.targetTx, this.targetTy, TILE.STONE);
-      const result = { type: this.targetType, amount: 1 };
-      this.reset();
-      audio.sfxMine();
-      return result;
+    for (const t of this.targets) {
+      if (t.progress >= 1) {
+        map.set(t.tx, t.ty, TILE.STONE);
+        const result = { type: t.type, amount: 1 };
+        this.targets = this.targets.filter(tt => tt !== t);
+        if (this.targets.length === 0) this.active = false;
+        audio.sfxMine();
+        return result;
+      }
     }
     return null;
   }
 
   getProgress() {
-    return this.active ? this.progress : 0;
+    if (!this.active || this.targets.length === 0) return 0;
+    return this.targets[0].progress;
   }
 }
 

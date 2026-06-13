@@ -39,6 +39,14 @@ export const META_UPGRADES = [
     baseCost: 20,
     costScale: 1.7,
   },
+  {
+    id: 'multiMine',
+    name: 'Мульти-добыча',
+    description: 'Позволяет добывать до 2 руд одновременно (ур.2 — до 3)',
+    maxLevel: 2,
+    baseCost: 25,
+    costScale: 1.8,
+  },
 ];
 
 export function getMetaUpgradeInfo(id, level) {

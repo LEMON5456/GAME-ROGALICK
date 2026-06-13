@@ -9,6 +9,7 @@ function defaultMeta() {
       combatBoost: 0,
       timeExtension: 0,
       shopDiscount: 0,
+      multiMine: 0,
     },
     stats: {
       runs: 0,
@@ -65,6 +66,7 @@ export class SaveManager {
       combatBoost: { base: 12, scale: 1.5, maxLevel: 5, effect: '+5% урона' },
       timeExtension: { base: 15, scale: 1.6, maxLevel: 3, effect: '+15 сек к таймеру' },
       shopDiscount: { base: 20, scale: 1.7, maxLevel: 2, effect: '-10% цена в магазине' },
+      multiMine: { base: 25, scale: 1.8, maxLevel: 2, effect: '+1 руда одновременно' },
     };
     const c = costs[id];
     if (!c || level >= c.maxLevel) return null;
@@ -93,6 +95,7 @@ export class SaveManager {
     run.miningSpeedMult = (run.miningSpeedMult || 1) + (lv.miningEfficiency || 0) * 0.05;
     run.timerBonus = (run.timerBonus || 0) + (lv.timeExtension || 0) * 15;
     run.shopDiscount = (lv.shopDiscount || 0) * 0.1;
+    run.multiMineCount = 1 + (lv.multiMine || 0);
     return run;
   }
 

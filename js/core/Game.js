@@ -45,6 +45,7 @@ function createRunState() {
     sector: 'sector1',
     shopDiscount: 0,
     kills: 0,
+    multiMineCount: 1,
   };
 }
 
@@ -347,8 +348,8 @@ export class Game {
       }
 
       if (this.input.action() && checkEvacuation(this.player, this.map)) {
-        const oreNear = this.mining.findNearbyOre(this.player, this.map);
-        if (!oreNear) {
+        const oreNear = this.mining.findNearbyOres(this.player, this.map, 1);
+        if (oreNear.length === 0) {
           this.finishPlanet();
           return;
         }
