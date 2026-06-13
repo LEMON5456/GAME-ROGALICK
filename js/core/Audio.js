@@ -11,7 +11,7 @@ export class AudioManager {
     this.initialized = false;
     this.biome = 'space';
     this.musicBuffer = null;
-    this._musicLoadAttempted = false;
+    this._currentTrack = '';
   }
 
   init() {
@@ -214,18 +214,12 @@ export class AudioManager {
     this._osc('square', 1200, 0.06, this.sfxGain, 600);
   }
 
-  startMusic(biome = 'space') {
-    this.biome = biome;
-    if (!this.ctx || this.musicPlaying) return;
-    if (this.musicBuffer) {
-      this._playBuffer();
-      return;
-    }
-    if (this._musicLoadAttempted) return;
-    this._musicLoadAttempted = true;
+  _loadTrack(url) {
+    this.stopMusic();
+    if (!this.ctx) return;
+    this._currentTrack = url;
     this.musicPlaying = true;
 
-    const url = 'assets/audio/bgm.mp3';
     fetch(url)
       .then((res) => {
         if (!res.ok) throw new Error('HTTP ' + res.status);
@@ -233,11 +227,12 @@ export class AudioManager {
       })
       .then((buffer) => this.ctx.decodeAudioData(buffer))
       .then((decoded) => {
+        if (!this.musicPlaying || this._currentTrack !== url) return;
         this.musicBuffer = decoded;
         this._playBuffer();
       })
       .catch(() => {
-        this.musicPlaying = false;
+        if (this._currentTrack === url) this.musicPlaying = false;
       });
   }
 
@@ -248,6 +243,17 @@ export class AudioManager {
     this.musicSource.loop = true;
     this.musicSource.connect(this.musicGain);
     this.musicSource.start(0);
+  }
+
+  startMusic(biome = 'space') {
+    this.biome = biome;
+    if (this._currentTrack === 'assets/audio/bgm.mp3' && this.musicSource) return;
+    this._loadTrack('assets/audio/bgm.mp3');
+  }
+
+  playBossMusic() {
+    if (this._currentTrack === 'assets/audio/boss.mp3' && this.musicSource) return;
+    this._loadTrack('assets/audio/boss.mp3');
   }
 
   stopMusic() {

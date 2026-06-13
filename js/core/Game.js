@@ -182,6 +182,7 @@ export class Game {
     this.state = STATE.BOSS;
     this.hud.show();
     this.particles = [];
+    audio.playBossMusic();
   }
 
   finishPlanet() {
@@ -242,7 +243,7 @@ export class Game {
     const sector2Unlocked = this.meta.stats.sector2Unlocked;
     this.menuUI.showWin(sector2Unlocked);
     audio.sfxWin();
-    audio.stopMusic();
+    audio.startMusic(this.biome);
   }
 
   startSector2() {
