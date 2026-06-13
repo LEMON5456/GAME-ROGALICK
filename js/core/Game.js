@@ -515,6 +515,7 @@ export class Game {
   renderBackground(ctx, bc) {
     const parallax1 = this.camera.x * 0.2;
     const parallax2 = this.camera.x * 0.4;
+    const isIce = this.biome === 'ice';
 
     const grad = ctx.createLinearGradient(0, 0, 0, this.canvas.height);
     grad.addColorStop(0, bc.sky1);
@@ -528,5 +529,19 @@ export class Game {
 
     ctx.fillStyle = bc.parallaxColor2;
     ctx.fillRect(-parallax2 % 300 - 80, 160, 160, 50);
+
+    if (isIce) {
+      for (let i = 0; i < 5; i++) {
+        const px = (-parallax1 * (0.5 + i * 0.2) % 400 - 100 + i * 90 + 50) % this.canvas.width;
+        const py = 40 + (i * 30 + Math.sin(this.time + i) * 10) % 140;
+        ctx.fillStyle = `rgba(200, 240, 255, ${0.08 + Math.sin(this.time * 0.5 + i) * 0.04})`;
+        ctx.beginPath();
+        ctx.moveTo(px, py - 10);
+        ctx.lineTo(px - 4, py + 6);
+        ctx.lineTo(px + 4, py + 6);
+        ctx.closePath();
+        ctx.fill();
+      }
+    }
   }
 }

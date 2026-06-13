@@ -61,8 +61,28 @@ export class TileMap {
     return this.height * TILE_SIZE;
   }
 
+  _drawIceFrost(ctx, x, y, bc) {
+    ctx.fillStyle = 'rgba(180, 230, 255, 0.08)';
+    ctx.fillRect(x, y, TILE_SIZE, 2);
+    ctx.fillRect(x, y + TILE_SIZE - 2, TILE_SIZE, 2);
+    ctx.fillStyle = 'rgba(180, 230, 255, 0.04)';
+    ctx.fillRect(x, y, 2, TILE_SIZE);
+    ctx.fillRect(x + TILE_SIZE - 2, y, 2, TILE_SIZE);
+  }
+
+  _drawIceCrystal(ctx, x, y) {
+    const cx = x + TILE_SIZE / 2;
+    const cy = y + TILE_SIZE / 2;
+    ctx.fillStyle = 'rgba(200, 240, 255, 0.12)';
+    for (let i = 0; i < 3; i++) {
+      const angle = (i / 3) * Math.PI + (this._crystalOffset || 0);
+      ctx.fillRect(cx + Math.cos(angle) * 8 - 1, cy + Math.sin(angle) * 8 - 1, 2, 8);
+    }
+  }
+
   render(ctx, camera) {
     const bc = this.getBiomeColors();
+    const isIce = this.biome === 'ice';
     const startTx = Math.max(0, Math.floor(camera.x / TILE_SIZE));
     const startTy = Math.max(0, Math.floor(camera.y / TILE_SIZE));
     const endTx = Math.min(this.width, Math.ceil((camera.x + camera.viewWidth) / TILE_SIZE) + 1);
@@ -78,10 +98,18 @@ export class TileMap {
           case TILE.STONE:
             ctx.fillStyle = (tx + ty) % 2 === 0 ? bc.stone : bc.stoneDark;
             ctx.fillRect(x, y, TILE_SIZE, TILE_SIZE);
+            if (isIce) {
+              this._drawIceFrost(ctx, x, y, bc);
+              if ((tx * 7 + ty * 13) % 5 === 0) this._drawIceCrystal(ctx, x, y);
+            }
             break;
           case TILE.ORE_IRON:
             ctx.fillStyle = bc.stoneDark;
             ctx.fillRect(x, y, TILE_SIZE, TILE_SIZE);
+            if (isIce) {
+              ctx.fillStyle = 'rgba(180, 220, 255, 0.15)';
+              ctx.fillRect(x, y, TILE_SIZE, TILE_SIZE);
+            }
             ctx.fillStyle = 'rgba(200, 120, 40, 0.35)';
             ctx.fillRect(x, y - 6, TILE_SIZE, 8);
             if (!sprites.drawIcon(ctx, SPRITES.oreIron, x + 4, y + 4, 24)) {
@@ -92,6 +120,10 @@ export class TileMap {
           case TILE.ORE_CRYSTAL:
             ctx.fillStyle = bc.stoneDark;
             ctx.fillRect(x, y, TILE_SIZE, TILE_SIZE);
+            if (isIce) {
+              ctx.fillStyle = 'rgba(200, 240, 255, 0.2)';
+              ctx.fillRect(x, y, TILE_SIZE, TILE_SIZE);
+            }
             ctx.fillStyle = 'rgba(64, 200, 232, 0.35)';
             ctx.fillRect(x, y - 6, TILE_SIZE, 8);
             if (!sprites.drawIcon(ctx, SPRITES.oreCrystal, x + 4, y + 4, 24)) {
@@ -100,10 +132,29 @@ export class TileMap {
             }
             break;
           case TILE.HAZARD:
-            ctx.fillStyle = bc.hazardGlow.replace('0.35', '0.5');
-            ctx.fillRect(x, y, TILE_SIZE, TILE_SIZE);
-            ctx.fillStyle = this.biome === 'ice' ? '#6a9ac0' : COLORS.hazard;
-            ctx.fillRect(x + 2, y + 2, TILE_SIZE - 4, TILE_SIZE - 4);
+            if (isIce) {
+              ctx.fillStyle = 'rgba(160, 220, 255, 0.2)';
+              ctx.fillRect(x, y, TILE_SIZE, TILE_SIZE);
+              ctx.fillStyle = '#5a8aaa';
+              ctx.beginPath();
+              ctx.moveTo(x + 4, y + TILE_SIZE);
+              ctx.lineTo(x + TILE_SIZE / 2, y + 2);
+              ctx.lineTo(x + TILE_SIZE - 4, y + TILE_SIZE);
+              ctx.closePath();
+              ctx.fill();
+              ctx.fillStyle = 'rgba(200, 240, 255, 0.25)';
+              ctx.beginPath();
+              ctx.moveTo(x + 8, y + TILE_SIZE - 4);
+              ctx.lineTo(x + TILE_SIZE / 2, y + 6);
+              ctx.lineTo(x + TILE_SIZE - 8, y + TILE_SIZE - 4);
+              ctx.closePath();
+              ctx.fill();
+            } else {
+              ctx.fillStyle = bc.hazardGlow.replace('0.35', '0.5');
+              ctx.fillRect(x, y, TILE_SIZE, TILE_SIZE);
+              ctx.fillStyle = COLORS.hazard;
+              ctx.fillRect(x + 2, y + 2, TILE_SIZE - 4, TILE_SIZE - 4);
+            }
             break;
           case TILE.EXIT_PAD:
             ctx.fillStyle = COLORS.exitPad;
@@ -115,6 +166,8 @@ export class TileMap {
       }
     }
   }
+
+  _crystalOffset = 0;
 
   renderMarkers(ctx, time) {
     const pulse = 0.75 + Math.sin(time * 3) * 0.25;

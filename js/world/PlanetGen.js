@@ -25,6 +25,7 @@ export function generatePlanet(config, biome = 'space') {
   placeOres(map, TILE.ORE_IRON, ironCount);
   placeOres(map, TILE.ORE_CRYSTAL, crystalCount);
   placeSpawnOres(map);
+  if (biome === 'ice') placeIceStalactites(map, width);
   const pickups = placePickups(map, width);
   removeFloatingBlocks(map, width, height);
 
@@ -231,6 +232,17 @@ export function generateBossArena(biome = 'space') {
   map.exitY = 0;
 
   return map;
+}
+
+function placeIceStalactites(map, width) {
+  for (let i = 0; i < randInt(4, 8); i++) {
+    const tx = randInt(18, width - 18);
+    const ty = CAVE_TOP;
+    if (map.get(tx, ty) !== TILE.AIR) continue;
+    if (map.get(tx, ty + 1) !== TILE.AIR) continue;
+    map.set(tx, ty, TILE.HAZARD);
+    map.set(tx, ty + 1, TILE.HAZARD);
+  }
 }
 
 function placePickups(map, width) {
