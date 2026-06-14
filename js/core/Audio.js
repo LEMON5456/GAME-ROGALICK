@@ -135,6 +135,10 @@ export class AudioManager {
     this._playSfxBuffer('walkMetal', 0.3, 0.15);
   }
 
+  sfxClick() {
+    this._osc('sine', 660, 0.05, this.sfxGain, 880);
+  }
+
   sfxHurt() {
     this._noise(0.15, this.sfxGain);
   }

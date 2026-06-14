@@ -107,6 +107,8 @@ export class Game {
     this.heartbeatTimer = 3;
     this._mapVisible = false;
     this._prevMapPressed = false;
+    this._fadeAlpha = 0;
+    this._fadeDir = 0;
     this.floatingTexts = [];
     this.events = [];
     this.bgImage = new BackgroundImage();
@@ -147,6 +149,26 @@ export class Game {
       pauseSlider.value = this.meta.settings.musicVolume * 100;
       pauseSlider.addEventListener('input', () => setVolume(parseFloat(pauseSlider.value) / 100));
     }
+
+    const setSfxVolume = (v) => {
+      audio.setSfxVolume(v);
+      this.meta.settings.sfxVolume = v;
+      SaveManager.save(this.meta);
+    };
+    const sfxSlider = document.getElementById('sfx-volume-slider');
+    if (sfxSlider) {
+      sfxSlider.value = (this.meta.settings.sfxVolume || 0.5) * 100;
+      sfxSlider.addEventListener('input', () => setSfxVolume(parseFloat(sfxSlider.value) / 100));
+    }
+    const pauseSfx = document.getElementById('pause-sfx-slider');
+    if (pauseSfx) {
+      pauseSfx.value = (this.meta.settings.sfxVolume || 0.5) * 100;
+      pauseSfx.addEventListener('input', () => setSfxVolume(parseFloat(pauseSfx.value) / 100));
+    }
+
+    document.querySelectorAll('.panel button').forEach(btn => {
+      btn.addEventListener('click', () => audio.sfxClick());
+    });
   }
 
   resize() {
@@ -156,6 +178,29 @@ export class Game {
     this.canvas.height = h;
     this.camera.resize(w, h);
     this.lighting.resize(w, h);
+  }
+
+  fadeTransition(callback) {
+    if (this._fadeDir !== 0) return;
+    this._fadeDir = 1;
+    this._fadeCallback = callback;
+  }
+
+  updateFade(dt) {
+    if (this._fadeDir === 0) return;
+    const speed = 3;
+    this._fadeAlpha += this._fadeDir * speed * dt;
+    if (this._fadeAlpha >= 1) {
+      this._fadeAlpha = 1;
+      this._fadeDir = -1;
+      if (this._fadeCallback) {
+        this._fadeCallback();
+        this._fadeCallback = null;
+      }
+    } else if (this._fadeAlpha <= 0) {
+      this._fadeAlpha = 0;
+      this._fadeDir = 0;
+    }
   }
 
   startRun() {
@@ -200,11 +245,13 @@ export class Game {
   deploy() {
     this.menuUI.hideAll();
     this.canvas.focus();
-    if (this.run.phase === 'boss') {
-      this.loadBoss();
-    } else {
-      this.loadPlanet(this.run.planetIndex);
-    }
+    this.fadeTransition(() => {
+      if (this.run.phase === 'boss') {
+        this.loadBoss();
+      } else {
+        this.loadPlanet(this.run.planetIndex);
+      }
+    });
   }
 
   loadPlanet(index) {
@@ -288,102 +335,101 @@ export class Game {
     this.run.sessionOre = { iron: 0, crystal: 0 };
     this.run.hp = this.player.hp;
 
-    if (this.run.endless) {
-      this.run.planetIndex++;
-      const biomes = ['space', 'ice', 'lava'];
-      const b = biomes[this.run.planetIndex % biomes.length];
-      this.run._endlessBiomeOffset = (this.run._endlessBiomeOffset || 0) + 1;
-      const planetsList = getPlanetsForSector('sector1');
-      const idx = this.run.planetIndex % planetsList.length;
-      const baseConfig = planetsList[idx];
-      const difficultyMult = 1 + Math.floor(this.run.planetIndex / planetsList.length) * 0.5;
-      this.run._endlessConfig = {
-        ...baseConfig,
-        timeBonus: Math.max(-15, -(Math.floor(this.run.planetIndex / 2) * 5)),
-        enemies: baseConfig.enemies.map(e => ({ ...e, count: Math.ceil(e.count * difficultyMult) })),
-        waves: (baseConfig.waves || []).map(w => ({
-          delay: Math.max(8, w.delay - Math.floor(this.run.planetIndex / 2) * 3),
-          enemies: w.enemies.map(e => ({ ...e, count: Math.ceil(e.count * difficultyMult) })),
-        })),
-      };
-      const endlessSector = getSectorInfo(b === 'space' ? 'sector1' : b === 'ice' ? 'sector2' : 'sector3');
-      this.biome = endlessSector.biome;
-      this.sectorInfo = endlessSector;
-      this.run.phase = 'planets';
+    this.fadeTransition(() => {
+      if (this.run.endless) {
+        this.run.planetIndex++;
+        const biomes = ['space', 'ice', 'lava'];
+        const b = biomes[this.run.planetIndex % biomes.length];
+        this.run._endlessBiomeOffset = (this.run._endlessBiomeOffset || 0) + 1;
+        const planetsList = getPlanetsForSector('sector1');
+        const idx = this.run.planetIndex % planetsList.length;
+        const baseConfig = planetsList[idx];
+        const difficultyMult = 1 + Math.floor(this.run.planetIndex / planetsList.length) * 0.5;
+        this.run._endlessConfig = {
+          ...baseConfig,
+          timeBonus: Math.max(-15, -(Math.floor(this.run.planetIndex / 2) * 5)),
+          enemies: baseConfig.enemies.map(e => ({ ...e, count: Math.ceil(e.count * difficultyMult) })),
+          waves: (baseConfig.waves || []).map(w => ({
+            delay: Math.max(8, w.delay - Math.floor(this.run.planetIndex / 2) * 3),
+            enemies: w.enemies.map(e => ({ ...e, count: Math.ceil(e.count * difficultyMult) })),
+          })),
+        };
+        const endlessSector = getSectorInfo(b === 'space' ? 'sector1' : b === 'ice' ? 'sector2' : 'sector3');
+        this.biome = endlessSector.biome;
+        this.sectorInfo = endlessSector;
+        this.run.phase = 'planets';
+      } else {
+        const planets = getPlanetsForSector(this.run.sector);
+        this.run.planetIndex++;
+        if (this.run.planetIndex >= planets.length) {
+          this.run.phase = 'boss';
+        }
+      }
       this.state = STATE.SHOP;
       this.hud.hide();
       this.shopUI.show(this.run);
       audio.sfxEvacuate();
-      return;
-    }
-
-    const planets = getPlanetsForSector(this.run.sector);
-    this.run.planetIndex++;
-    if (this.run.planetIndex >= planets.length) {
-      this.run.phase = 'boss';
-      this.state = STATE.SHOP;
-      this.hud.hide();
-      this.shopUI.show(this.run);
-    } else {
-      this.state = STATE.SHOP;
-      this.hud.hide();
-      this.shopUI.show(this.run);
-    }
-    audio.sfxEvacuate();
+    });
   }
 
   afterShop() {
-    if (this.run.phase === 'boss') {
-      const bossName = this.biome === 'lava' ? LAVA_BOSS_PLANET.name : BOSS_PLANET.name;
-      this.hubMessage = 'Финальная миссия: ' + bossName;
-      this.state = STATE.HUB;
-      this.menuUI.showHub(this.run, this.hubMessage, this.sectorInfo.name, this.sectorInfo.biome, 'black_hole');
-    } else {
-      const planets = getPlanetsForSector(this.run.sector);
-      this.hubMessage = 'Следующая высадка: ' + planets[this.run.planetIndex].name;
-      this.state = STATE.HUB;
-      this.menuUI.showHub(this.run, this.hubMessage, this.sectorInfo.name, this.sectorInfo.biome);
-    }
+    this.fadeTransition(() => {
+      if (this.run.phase === 'boss') {
+        const bossName = this.biome === 'lava' ? LAVA_BOSS_PLANET.name : BOSS_PLANET.name;
+        this.hubMessage = 'Финальная миссия: ' + bossName;
+        this.state = STATE.HUB;
+        this.menuUI.showHub(this.run, this.hubMessage, this.sectorInfo.name, this.sectorInfo.biome, 'black_hole');
+      } else {
+        const planets = getPlanetsForSector(this.run.sector);
+        this.hubMessage = 'Следующая высадка: ' + planets[this.run.planetIndex].name;
+        this.state = STATE.HUB;
+        this.menuUI.showHub(this.run, this.hubMessage, this.sectorInfo.name, this.sectorInfo.biome);
+      }
+    });
   }
 
   onDeath() {
     this.state = STATE.GAME_OVER;
     this.hud.hide();
-    const stats = {
-      oreIron: this.run.oreBank.iron + this.run.sessionOre.iron,
-      oreCrystal: this.run.oreBank.crystal + this.run.sessionOre.crystal,
-      kills: this.run.kills || 0,
-      time: this.planetTimer ? this.planetTimer.format() : '00:00',
-      sector: this.sectorInfo ? this.sectorInfo.name : '—',
-    };
-    this.menuUI.showGameOver(stats);
-    SaveManager.recordRunEnd(this.meta, 'lose', 0);
-    audio.sfxLose();
-    audio.stopMusic();
+    this.fadeTransition(() => {
+      const stats = {
+        oreIron: this.run.oreBank.iron + this.run.sessionOre.iron,
+        oreCrystal: this.run.oreBank.crystal + this.run.sessionOre.crystal,
+        kills: this.run.kills || 0,
+        time: this.planetTimer ? this.planetTimer.format() : '00:00',
+        sector: this.sectorInfo ? this.sectorInfo.name : '—',
+      };
+      this.menuUI.showGameOver(stats);
+      SaveManager.recordRunEnd(this.meta, 'lose', 0);
+      audio.sfxLose();
+      audio.stopMusic();
+    });
   }
 
   onWin() {
     this.state = STATE.WIN;
     this.hud.hide();
-    const etherReward = 50;
-    const sector = this.run ? this.run.sector : 'sector1';
-    if (sector === 'sector1' && !this.meta.stats.sector2Unlocked) {
-      this.meta.stats.sector2Unlocked = true;
-    }
-    if (sector === 'sector2' && !this.meta.stats.sector3Unlocked) {
-      this.meta.stats.sector3Unlocked = true;
-    }
-    if (sector === 'sector3' && !this.meta.stats.endlessUnlocked) {
-      this.meta.stats.endlessUnlocked = true;
-    }
-    SaveManager.awardEtherSerum(this.meta, etherReward);
-    SaveManager.recordRunEnd(this.meta, 'win', this.run.oreBank.iron + this.run.oreBank.crystal);
-    const sector2Unlocked = this.meta.stats.sector2Unlocked;
-    const sector3Unlocked = this.meta.stats.sector3Unlocked;
-    const endlessUnlocked = this.meta.stats.endlessUnlocked;
-    this.menuUI.showWin(sector2Unlocked, sector3Unlocked, endlessUnlocked);
-    audio.sfxWin();
-    audio.startMusic(this.biome);
+    this.fadeTransition(() => {
+      const etherReward = 50;
+      const sector = this.run ? this.run.sector : 'sector1';
+      if (sector === 'sector1' && !this.meta.stats.sector2Unlocked) {
+        this.meta.stats.sector2Unlocked = true;
+      }
+      if (sector === 'sector2' && !this.meta.stats.sector3Unlocked) {
+        this.meta.stats.sector3Unlocked = true;
+      }
+      if (sector === 'sector3' && !this.meta.stats.endlessUnlocked) {
+        this.meta.stats.endlessUnlocked = true;
+      }
+      SaveManager.awardEtherSerum(this.meta, etherReward);
+      SaveManager.recordRunEnd(this.meta, 'win', this.run.oreBank.iron + this.run.oreBank.crystal);
+      const sector2Unlocked = this.meta.stats.sector2Unlocked;
+      const sector3Unlocked = this.meta.stats.sector3Unlocked;
+      const endlessUnlocked = this.meta.stats.endlessUnlocked;
+      this.menuUI.showWin(sector2Unlocked, sector3Unlocked, endlessUnlocked);
+      audio.sfxWin();
+      audio.startMusic(this.biome);
+    });
   }
 
   startSector2() {
@@ -492,6 +538,7 @@ export class Game {
   }
 
   update(dt) {
+    this.updateFade(dt);
     if (this.state !== STATE.PAUSED) {
       this.time += dt;
     }
@@ -831,6 +878,11 @@ export class Game {
 
     if (this._mapVisible && this.map && (this.state === STATE.PLANET || this.state === STATE.BOSS || this.state === STATE.PAUSED)) {
       this.map.renderFullMap(ctx, this.canvas.width, this.canvas.height, this.player.x, this.player.y, this.enemies, this.pickups);
+    }
+
+    if (this._fadeAlpha > 0) {
+      ctx.fillStyle = `rgba(0,0,0,${this._fadeAlpha})`;
+      ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
     }
   }
 
