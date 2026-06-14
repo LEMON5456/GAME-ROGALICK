@@ -156,12 +156,12 @@ export class Player {
     ctx.globalAlpha = 1;
 
     if (this.miningActive && this.pickaxeImg && this.pickaxeImg.complete) {
-      const px = this.x + this.w / 2 + this.facing * 6;
-      const py = this.y + 12;
+      const px = this.x + this.w / 2 + this.facing * 8;
+      const py = this.y + 8;
       ctx.save();
       ctx.translate(px, py);
       ctx.scale(this.facing, 1);
-      ctx.drawImage(this.pickaxeImg, -8, -4, 20, 20);
+      ctx.drawImage(this.pickaxeImg, -16, -16, 32, 32);
       ctx.restore();
     }
 

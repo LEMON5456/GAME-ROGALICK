@@ -121,19 +121,7 @@ export class AudioManager {
   }
 
   sfxMine() {
-    if (this._playSfxBuffer('mine')) return;
-    if (!this.ctx) return;
-    const osc = this.ctx.createOscillator();
-    const g = this.ctx.createGain();
-    osc.type = 'sawtooth';
-    osc.frequency.setValueAtTime(120, this.ctx.currentTime);
-    osc.frequency.linearRampToValueAtTime(80, this.ctx.currentTime + 0.15);
-    g.gain.setValueAtTime(0.1, this.ctx.currentTime);
-    g.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.2);
-    osc.connect(g);
-    g.connect(this.sfxGain);
-    osc.start(this.ctx.currentTime);
-    osc.stop(this.ctx.currentTime + 0.2);
+    this._playSfxBuffer('mine');
   }
 
   sfxHurt() {
