@@ -101,7 +101,7 @@ export class AudioManager {
       .catch(() => {});
   }
 
-  _playSfxBuffer(key, volume = 0.4) {
+  _playSfxBuffer(key, volume = 0.4, duration = 0) {
     if (!this.ctx || !this._sfxBuffers[key]) return false;
     const source = this.ctx.createBufferSource();
     source.buffer = this._sfxBuffers[key];
@@ -110,6 +110,11 @@ export class AudioManager {
     source.connect(g);
     g.connect(this.sfxGain);
     source.start(this.ctx.currentTime);
+    if (duration > 0) {
+      setTimeout(() => {
+        try { source.stop(); } catch {}
+      }, duration * 1000);
+    }
     return true;
   }
 
@@ -121,12 +126,8 @@ export class AudioManager {
     this._osc('triangle', 200, 0.1, this.sfxGain, 60);
   }
 
-  sfxMine() {
-    if (this._minePlaying) return;
-    if (this._playSfxBuffer('mine')) {
-      this._minePlaying = true;
-      setTimeout(() => { this._minePlaying = false; }, 500);
-    }
+  sfxMine(duration = 0) {
+    this._playSfxBuffer('mine', 0.5, duration);
   }
 
   sfxHurt() {

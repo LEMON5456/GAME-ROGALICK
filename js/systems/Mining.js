@@ -6,11 +6,13 @@ export class MiningSystem {
   constructor() {
     this.active = false;
     this.targets = [];
+    this._mineSoundCooldown = 0;
   }
 
   reset() {
     this.active = false;
     this.targets = [];
+    this._mineSoundCooldown = 0;
   }
 
   miningPoint(player) {
@@ -72,10 +74,14 @@ export class MiningSystem {
 
     this.active = true;
     const miningTime = MINING.BASE_TIME / (run.miningSpeedMult || 1);
+    this._mineSoundCooldown -= dt;
+    if (this._mineSoundCooldown <= 0) {
+      this._mineSoundCooldown = 0.4;
+      audio.sfxMine(0.35);
+    }
     for (const t of this.targets) {
       t.progress += dt / miningTime;
     }
-    audio.sfxMiningTick();
 
     for (const t of this.targets) {
       if (t.progress >= 1) {
@@ -83,7 +89,6 @@ export class MiningSystem {
         const result = { type: t.type, amount: 1 };
         this.targets = this.targets.filter(tt => tt !== t);
         if (this.targets.length === 0) this.active = false;
-        audio.sfxMine();
         return result;
       }
     }
