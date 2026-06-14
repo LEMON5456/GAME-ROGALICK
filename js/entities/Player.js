@@ -3,6 +3,7 @@ import { moveWithCollisions, isOnGround } from '../world/Physics.js';
 import { sprites, SPRITES } from '../core/Sprites.js';
 import { fxSheets } from '../core/FXSheets.js';
 import { Animation, getWalkFrames } from '../core/Animations.js';
+import { audio } from '../core/Audio.js';
 
 export class Player {
   constructor() {
@@ -33,6 +34,7 @@ export class Player {
     this.ultimateCharge = 0;
     this.ultimateActive = 0;
     this.miningActive = false;
+    this._footstepTimer = 0;
   }
 
   spawn(x, y, run) {
@@ -93,6 +95,16 @@ export class Player {
 
     this.currentAnim = moving && this.grounded ? this.walkAnim : this.idleAnim;
     this.currentAnim.update(dt);
+
+    if (moving && this.grounded && biome === 'space') {
+      this._footstepTimer -= dt;
+      if (this._footstepTimer <= 0) {
+        this._footstepTimer = 0.35;
+        audio.sfxWalk();
+      }
+    } else {
+      this._footstepTimer = 0;
+    }
   }
 
   addUltimateCharge(amount) {

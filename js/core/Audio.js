@@ -35,6 +35,7 @@ export class AudioManager {
 
       this.initialized = true;
       this._loadSfx('mine', 'assets/audio/mine.mp3');
+      this._loadSfx('walkMetal', 'assets/audio/walk_metal.mp3');
     } catch (e) {
       console.warn('Audio not available:', e);
     }
@@ -128,6 +129,10 @@ export class AudioManager {
 
   sfxMine(duration = 0) {
     this._playSfxBuffer('mine', 0.5, duration);
+  }
+
+  sfxWalk() {
+    this._playSfxBuffer('walkMetal', 0.3, 0.15);
   }
 
   sfxHurt() {
