@@ -1,5 +1,8 @@
 import { Game } from './core/Game.js';
 import { sprites } from './core/Sprites.js';
+import { planetIcons } from './core/PlanetIcons.js';
+import { effectSheets } from './core/EffectSheets.js';
+import { fxSheets } from './core/FXSheets.js';
 
 const canvas = document.getElementById('game-canvas');
 
@@ -19,16 +22,11 @@ function loop(now) {
     accumulator -= FIXED_DT;
   }
 
-  game.render();
+  game.render(FIXED_DT);
   requestAnimationFrame(loop);
 }
 
-sprites.load().then(() => {
-  game = new Game(canvas);
-  window.addEventListener('resize', () => game?.resize());
-  requestAnimationFrame(loop);
-}).catch((err) => {
-  console.error(err);
+Promise.all([sprites.load(), planetIcons.load(), effectSheets.load(), fxSheets.load()]).catch(() => {}).then(() => {
   game = new Game(canvas);
   window.addEventListener('resize', () => game?.resize());
   requestAnimationFrame(loop);

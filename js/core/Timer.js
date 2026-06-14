@@ -2,12 +2,14 @@ export class Timer {
   constructor(seconds) {
     this.max = seconds;
     this.remaining = seconds;
+    this.elapsed = 0;
     this.active = false;
   }
 
   start(seconds) {
     this.max = seconds;
     this.remaining = seconds;
+    this.elapsed = 0;
     this.active = true;
   }
 
@@ -18,11 +20,16 @@ export class Timer {
   update(dt) {
     if (!this.active) return false;
     this.remaining -= dt;
+    this.elapsed += dt;
     if (this.remaining <= 0) {
       this.remaining = 0;
       return true;
     }
     return false;
+  }
+
+  addTime(seconds) {
+    this.remaining = Math.min(this.remaining + seconds, this.max);
   }
 
   format() {

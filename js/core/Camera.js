@@ -21,7 +21,7 @@ export class Camera {
   follow(targetX, targetY, dt) {
     const targetCamX = targetX - this.viewWidth / 2;
     const targetCamY = targetY - this.viewHeight / 2;
-    const lerp = Math.min(1, dt * 8);
+    const lerp = 1 - Math.pow(1 - 0.133, dt * 60);
     this.x += (targetCamX - this.x) * lerp;
     this.y += (targetCamY - this.y) * lerp;
     this.clamp();
@@ -66,9 +66,9 @@ export class Camera {
     return { x: 0, y: 0 };
   }
 
-  apply(ctx) {
+  apply(ctx, dt) {
     ctx.save();
-    const shake = this.updateShake(1 / 60);
+    const shake = this.updateShake(dt || 1 / 60);
     ctx.translate(-Math.floor(this.x + shake.x), -Math.floor(this.y + shake.y));
   }
 

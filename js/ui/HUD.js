@@ -7,6 +7,9 @@ export class HUD {
     this.timer = document.getElementById('planet-timer');
     this.miningWrap = document.getElementById('mining-progress');
     this.miningBar = document.getElementById('mining-bar');
+    this.buffsEl = document.getElementById('buffs');
+    this.ultimateEl = document.getElementById('ultimate-charge');
+    this._waveWarningTimer = 0;
   }
 
   show() {
@@ -17,7 +20,7 @@ export class HUD {
     this.el.classList.add('hidden');
   }
 
-  update(player, run, planetTimer, miningProgress, showTimer) {
+  update(player, run, planetTimer, miningProgress, showTimer, waveManager, dt) {
     const hpPct = Math.max(0, (player.hp / player.maxHp) * 100);
     this.hpBar.style.width = `${hpPct}%`;
     this.hpText.textContent = `${Math.ceil(player.hp)} / ${player.maxHp}`;
@@ -39,6 +42,39 @@ export class HUD {
       this.miningBar.style.width = `${miningProgress * 100}%`;
     } else {
       this.miningWrap.classList.add('hidden');
+    }
+
+    let buffHtml = '';
+    if (player.shield > 0) {
+      buffHtml += `<span class="buff buff-shield">[ЩИТ ${player.shield.toFixed(1)}s]</span>`;
+    }
+    if (player.speedBoost > 0) {
+      buffHtml += `<span class="buff buff-speed">[УСКОР ${player.speedBoost.toFixed(1)}s]</span>`;
+    }
+    this.buffsEl.innerHTML = buffHtml;
+
+    const ultPct = player.ultimateCharge;
+    if (player.ultimateActive > 0) {
+      this.ultimateEl.textContent = `УЛЬТА ${player.ultimateActive.toFixed(1)}s`;
+      this.ultimateEl.className = 'active';
+    } else if (ultPct >= 100) {
+      this.ultimateEl.textContent = 'УЛЬТА [K] ГОТОВА';
+      this.ultimateEl.className = 'ready';
+    } else {
+      this.ultimateEl.textContent = `УЛЬТА [K] ${Math.floor(ultPct)}%`;
+      this.ultimateEl.className = '';
+    }
+
+    if (waveManager && waveManager.warningActive) {
+      this._waveWarningTimer = 2;
+    }
+    if (this._waveWarningTimer > 0) {
+      this._waveWarningTimer -= dt || 1 / 60;
+      const el = document.getElementById('wave-warning');
+      if (el) el.classList.remove('hidden');
+    } else {
+      const el = document.getElementById('wave-warning');
+      if (el) el.classList.add('hidden');
     }
   }
 }

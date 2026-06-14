@@ -1,6 +1,15 @@
-out.txt
-err.txt
-server_out.txt
-server_err.txt
-*.log
-__pycache__/
+# Node
+node_modules/
+
+# OS
+Thumbs.db
+.DS_Store
+
+# Source asset folders (processed copies in assets/)
+/planets/
+/Effect and Bullet 16 x16/
+/Free pixel effects pack/
+/*.ai
+/*.eps
+/*.jpg
+/*.png

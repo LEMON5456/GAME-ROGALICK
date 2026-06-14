@@ -26,10 +26,13 @@ export function generatePlanet(config, biome = 'space') {
   placeOres(map, TILE.ORE_CRYSTAL, crystalCount);
   placeSpawnOres(map);
   if (biome === 'ice') placeIceStalactites(map, width);
+  const secretCrate = placeSecretHouse(map, width, biome);
   const pickups = placePickups(map, width);
   removeFloatingBlocks(map, width, height);
 
   map.pickups = pickups;
+  map.crates = placeCrates(map, width);
+  if (secretCrate) map.crates.push(secretCrate);
   return map;
 }
 
@@ -239,9 +242,7 @@ function placeIceStalactites(map, width) {
     const tx = randInt(18, width - 18);
     const ty = CAVE_TOP;
     if (map.get(tx, ty) !== TILE.AIR) continue;
-    if (map.get(tx, ty + 1) !== TILE.AIR) continue;
     map.set(tx, ty, TILE.HAZARD);
-    map.set(tx, ty + 1, TILE.HAZARD);
   }
 }
 
@@ -259,6 +260,50 @@ function placePickups(map, width) {
     });
   }
   return pickups;
+}
+
+function placeCrates(map, width) {
+  const crates = [];
+  const count = randInt(3, 6);
+  for (let i = 0; i < count; i++) {
+    const tx = randInt(20, width - 20);
+    if (map.get(tx, FLOOR_TY) !== TILE.STONE) continue;
+    if (map.get(tx, FLOOR_TY - 1) !== TILE.AIR) continue;
+    crates.push({ x: tx * TILE_SIZE, y: (FLOOR_TY - 1) * TILE_SIZE });
+  }
+  return crates;
+}
+
+function placeSecretHouse(map, width, biome) {
+  if (Math.random() > 0.35) return null;
+  const tx = randInt(25, width - 25);
+  const roomTop = CEILING_TY - 5;
+  const roomH = 4;
+  if (roomTop < 2) return null;
+
+  for (let dy = 0; dy < roomH; dy++) {
+    for (let dx = -2; dx <= 2; dx++) {
+      map.set(tx + dx, roomTop + dy, TILE.AIR);
+    }
+  }
+  for (let dx = -2; dx <= 2; dx++) {
+    map.set(tx + dx, roomTop + roomH, TILE.STONE);
+    map.set(tx + dx, roomTop - 1, TILE.STONE);
+  }
+  for (let dy = 0; dy < roomH; dy++) {
+    map.set(tx - 3, roomTop + dy, TILE.STONE);
+    map.set(tx + 3, roomTop + dy, TILE.STONE);
+  }
+
+  const shaftTx = tx + 2;
+  for (let ty = CEILING_TY; ty >= roomTop + roomH; ty--) {
+    map.set(shaftTx, ty, TILE.AIR);
+    map.set(shaftTx + 1, ty, TILE.AIR);
+  }
+
+  const secretCrateX = tx * TILE_SIZE;
+  const secretCrateY = (roomTop + roomH - 2) * TILE_SIZE;
+  return { x: secretCrateX, y: secretCrateY };
 }
 
 export function findEnemySpawns(map, count) {

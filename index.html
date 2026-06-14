@@ -44,11 +44,14 @@
         </div>
         <div id="ore-display">Fe: 0 | Cr: 0</div>
         <div id="planet-timer">03:00</div>
+        <div id="ultimate-wrap"><span id="ultimate-charge"></span></div>
       </div>
-      <div id="hud-hints">← → — движение | Space — прыжок | J / ЛКМ — стрельба | E / У / F — добыча (жми у руды в полу) | E у ВЫХОД — эвакуация</div>
+      <div id="hud-hints">← → — движение | Space — прыжок | J / ЛКМ — стрельба | E / У / F — добыча (жми у руды в полу) | E у ВЫХОД — эвакуация | K — ульта</div>
       <div id="mining-progress" class="hidden">
         <div id="mining-bar"></div>
       </div>
+      <div id="buffs"></div>
+      <div id="wave-warning" class="hidden">⚠ ВОЛНА ВРАГОВ!</div>
     </div>
 
     <div id="menu-overlay" class="overlay">
@@ -65,7 +68,8 @@
     </div>
 
     <div id="hub-overlay" class="overlay hidden">
-      <div class="panel">
+      <div class="panel hub-panel">
+        <canvas id="hub-planet" width="96" height="96"></canvas>
         <h2 id="hub-sector">Корабль — Сектор 1</h2>
         <p id="hub-message">Готов к высадке на планету?</p>
         <p id="hub-ore">Руда: Fe: 0 | Cr: 0</p>
@@ -103,9 +107,22 @@
     <div id="win-overlay" class="overlay hidden">
       <div class="panel">
         <h2>Разлом запечатан!</h2>
-        <p id="win-text">Вы спасли сектор 1. Галактика в безопасности.</p>
+        <p id="win-text">Вы спасли сектор. Галактика в безопасности.</p>
         <button id="btn-win-retry">Новый забег</button>
         <button id="btn-sector2" class="btn-secondary" style="margin-top:8px;display:none;">Сектор 2 — Ледяные глубины</button>
+        <button id="btn-sector3" class="btn-secondary" style="margin-top:8px;display:none;">Сектор 3 — Огненные недра</button>
+        <button id="btn-endless" class="btn-secondary" style="margin-top:8px;display:none;">∞ Бесконечность</button>
+      </div>
+    </div>
+    <div id="pause-overlay" class="overlay hidden">
+      <div class="panel">
+        <h2>ПАУЗА</h2>
+        <button id="btn-resume">Продолжить</button>
+        <button id="btn-pause-settings" class="btn-secondary" style="margin-top:8px;">Настройки</button>
+        <div id="pause-settings-panel" class="hidden" style="margin-top:12px;">
+          <label>Громкость музыки: <input type="range" id="pause-volume-slider" min="0" max="100" value="30"></label>
+        </div>
+        <button id="btn-pause-quit" class="btn-danger" style="margin-top:16px;">Выйти в меню</button>
       </div>
     </div>
   </div>

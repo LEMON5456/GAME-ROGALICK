@@ -1,7 +1,6 @@
 import { ENEMIES } from '../data/enemies.js';
 import { COLORS, COMBAT } from '../constants.js';
 import { moveWithCollisions, center, dist } from '../world/Physics.js';
-import { Projectile } from './Projectile.js';
 import { PHYSICS } from '../constants.js';
 import { sprites, SPRITES } from '../core/Sprites.js';
 import { Animation, getWalkFrames } from '../core/Animations.js';
@@ -36,7 +35,7 @@ export class Enemy {
     this.anim = new Animation(getWalkFrames(0, this.type === 'spitter' ? 119 : 153, 17, 2), 0.2);
   }
 
-  update(dt, map, player, projectiles) {
+  update(dt, map, player, spawn) {
     if (this.dead) return;
     this.grounded = false;
     this.anim.update(dt);
@@ -64,7 +63,7 @@ export class Enemy {
         const dy = pc.y - ec.y;
         const len = Math.sqrt(dx * dx + dy * dy) || 1;
         const speed = COMBAT.PROJECTILE_SPEED * 0.7;
-        projectiles.push(new Projectile(ec.x, ec.y, dx / len, speed, 'spitter', dy / len * speed));
+        spawn(ec.x, ec.y, dx / len, speed, 'spitter', dy / len * speed);
       }
     } else if (this.type === 'kamikaze') {
       const pc = center(player);
@@ -99,11 +98,17 @@ export class Enemy {
       ctx.fillRect(this.x, this.y, this.w, this.h);
     }
 
-    if (this.maxHp > 30) {
+    if (this.elite) {
+      ctx.strokeStyle = '#ffd700';
+      ctx.lineWidth = 2;
+      ctx.strokeRect(this.x - 1, this.y - 1, this.w + 2, this.h + 2);
+    }
+
+    if (this.elite || this.maxHp > 30) {
       const barW = this.w;
       ctx.fillStyle = '#333';
       ctx.fillRect(this.x, this.y - 6, barW, 4);
-      ctx.fillStyle = '#f44';
+      ctx.fillStyle = this.elite ? '#ffd700' : '#f44';
       ctx.fillRect(this.x, this.y - 6, barW * (this.hp / this.maxHp), 4);
     }
   }

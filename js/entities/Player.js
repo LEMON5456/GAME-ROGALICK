@@ -1,7 +1,7 @@
 import { PHYSICS, COMBAT, COLORS } from '../constants.js';
 import { moveWithCollisions, isOnGround } from '../world/Physics.js';
-import { Projectile } from './Projectile.js';
 import { sprites, SPRITES } from '../core/Sprites.js';
+import { fxSheets } from '../core/FXSheets.js';
 import { Animation, getWalkFrames } from '../core/Animations.js';
 
 export class Player {
@@ -26,6 +26,12 @@ export class Player {
     this.hp = 100;
     this.maxHp = 100;
     this.justHurt = false;
+    this.regenTimer = 0;
+    this.lastHurtTime = 0;
+    this.shield = 0;
+    this.speedBoost = 0;
+    this.ultimateCharge = 0;
+    this.ultimateActive = 0;
   }
 
   spawn(x, y, run) {
@@ -38,21 +44,39 @@ export class Player {
     this.invincible = 0;
   }
 
-  update(input, map, dt, run) {
+  update(input, map, dt, run, biome) {
     const canJump = this.grounded || isOnGround(this, map);
     this.grounded = false;
     this.invincible = Math.max(0, this.invincible - dt);
+    this.ultimateActive = Math.max(0, this.ultimateActive - dt);
     this.fireCooldown = Math.max(0, this.fireCooldown - dt);
+    this.lastHurtTime += dt;
+    this.speedBoost = Math.max(0, this.speedBoost - dt);
 
+    if (this.lastHurtTime > 2 && this.hp < this.maxHp) {
+      this.regenTimer += dt;
+      while (this.regenTimer >= 5) {
+        this.regenTimer -= 5;
+        this.hp = Math.min(this.hp + 1, this.maxHp);
+      }
+    } else if (this.lastHurtTime <= 2) {
+      this.regenTimer = 0;
+    }
+
+    const speedMult = this.speedBoost > 0 ? 1.5 : 1;
+    const friction = biome === 'ice' ? 0.85 : 1;
     let moving = false;
     if (input.left()) {
-      this.vx = -PHYSICS.PLAYER_SPEED;
+      this.vx = -PHYSICS.PLAYER_SPEED * speedMult;
       this.facing = -1;
       moving = true;
     } else if (input.right()) {
-      this.vx = PHYSICS.PLAYER_SPEED;
+      this.vx = PHYSICS.PLAYER_SPEED * speedMult;
       this.facing = 1;
       moving = true;
+    } else if (friction < 1) {
+      this.vx *= friction;
+      if (Math.abs(this.vx) < 10) this.vx = 0;
     } else {
       this.vx = 0;
     }
@@ -70,22 +94,41 @@ export class Player {
     this.currentAnim.update(dt);
   }
 
-  tryFire(projectiles, camera) {
+  addUltimateCharge(amount) {
+    this.ultimateCharge = Math.min(100, this.ultimateCharge + amount);
+  }
+
+  useUltimate() {
+    if (this.ultimateCharge < 100 || this.ultimateActive > 0) return false;
+    this.ultimateCharge = 0;
+    this.ultimateActive = 5;
+    return true;
+  }
+
+  tryFire(spawn, camera) {
     if (this.fireCooldown > 0) return null;
-    this.fireCooldown = COMBAT.PLAYER_FIRE_RATE;
+    this.fireCooldown = this.ultimateActive > 0 ? COMBAT.PLAYER_FIRE_RATE * 0.4 : COMBAT.PLAYER_FIRE_RATE;
     const cx = this.x + this.w / 2;
     const cy = this.y + this.h / 2;
-    projectiles.push(
-      new Projectile(cx, cy, this.facing, COMBAT.PROJECTILE_SPEED, 'player')
-    );
+    spawn(cx, cy, this.facing, COMBAT.PROJECTILE_SPEED, 'player');
     return { x: cx + this.facing * 15, y: cy };
   }
 
   takeDamage(amount) {
     if (this.invincible > 0) return false;
+    if (this.shield > 0) {
+      this.shield = 0;
+      this.invincible = COMBAT.INVINCIBLE_TIME * 0.5;
+      this.justHurt = true;
+      this.lastHurtTime = 0;
+      this.regenTimer = 0;
+      return false;
+    }
     this.hp -= amount;
     this.invincible = COMBAT.INVINCIBLE_TIME;
     this.justHurt = true;
+    this.lastHurtTime = 0;
+    this.regenTimer = 0;
     return this.hp <= 0;
   }
 
@@ -105,5 +148,20 @@ export class Player {
     }
 
     ctx.globalAlpha = 1;
+
+    if (this.ultimateActive > 0 && fxSheets.isReady()) {
+      const frame = Math.floor(time * 15) % fxSheets.get('brightFire').totalFrames;
+      fxSheets.drawFrame(ctx, 'brightFire', frame, this.x - 12, this.y - 12, this.w + 24, this.h + 24);
+    }
+
+    if (this.shield > 0) {
+      if (fxSheets.isReady()) {
+        const frame = Math.floor(time * 10) % fxSheets.get('protection').totalFrames;
+        fxSheets.drawFrame(ctx, 'protection', frame, this.x - 8, this.y - 8, this.w + 16, this.h + 16);
+      }
+      ctx.strokeStyle = `rgba(68, 136, 255, ${0.3 + Math.sin(time * 5) * 0.2})`;
+      ctx.lineWidth = 2;
+      ctx.strokeRect(this.x - 2, this.y - 2, this.w + 4, this.h + 4);
+    }
   }
 }

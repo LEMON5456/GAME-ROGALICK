@@ -1,7 +1,6 @@
 import { ENEMIES } from '../data/enemies.js';
 import { COMBAT } from '../constants.js';
 import { center, dist } from '../world/Physics.js';
-import { Projectile } from './Projectile.js';
 import { sprites, SPRITES } from '../core/Sprites.js';
 import { Animation, getWalkFrames } from '../core/Animations.js';
 import { audio } from '../core/Audio.js';
@@ -28,7 +27,7 @@ export class Flyer {
     this.anim = new Animation(getWalkFrames(0, 187), 0.2);
   }
 
-  update(dt, map, player, projectiles) {
+  update(dt, map, player, spawn) {
     if (this.dead) return;
     this.anim.update(dt);
 
@@ -49,7 +48,7 @@ export class Flyer {
       const dy = pc.y - fc.y;
       const len = Math.sqrt(dx * dx + dy * dy) || 1;
       const speed = COMBAT.PROJECTILE_SPEED * 0.65;
-      projectiles.push(new Projectile(fc.x, fc.y, dx / len, speed, 'flyer', dy / len * speed));
+      spawn(fc.x, fc.y, dx / len, speed, 'flyer', dy / len * speed);
       audio.sfxFlyerShoot();
     }
   }
@@ -66,6 +65,11 @@ export class Flyer {
     if (!sprites.drawScaled(ctx, frame, this.x, this.y, this.w, this.h, flip)) {
       ctx.fillStyle = '#80c0f0';
       ctx.fillRect(this.x, this.y, this.w, this.h);
+    }
+    if (this.elite) {
+      ctx.strokeStyle = '#ffd700';
+      ctx.lineWidth = 2;
+      ctx.strokeRect(this.x - 1, this.y - 1, this.w + 2, this.h + 2);
     }
   }
 }

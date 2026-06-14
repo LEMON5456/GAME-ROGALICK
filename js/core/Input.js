@@ -7,7 +7,7 @@ export class Input {
 
     const onKeyDown = (e) => {
       this.keys[e.code] = true;
-      if (['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.code)) {
+      if (['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Tab'].includes(e.code)) {
         e.preventDefault();
       }
     };
@@ -89,6 +89,14 @@ export class Input {
   /** Один выстрел за нажатие — для клавиши J / клика */
   firePressed() {
     return (this.isDown('KeyJ') && !this._prevKeyJ) || this.mouse.clicked;
+  }
+
+  mapPressed() {
+    return this.isDown('Tab') || this.isDown('KeyM');
+  }
+
+  ultimatePressed() {
+    return this.isDown('KeyK');
   }
 
   endFrame() {

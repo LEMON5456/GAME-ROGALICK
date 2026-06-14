@@ -1,7 +1,6 @@
 import { BOSS } from '../data/enemies.js';
 import { COLORS, COMBAT } from '../constants.js';
 import { moveWithCollisions, center } from '../world/Physics.js';
-import { Projectile } from './Projectile.js';
 import { Enemy } from './Enemy.js';
 import { PHYSICS } from '../constants.js';
 import { sprites, SPRITES } from '../core/Sprites.js';
@@ -27,13 +26,17 @@ export class Boss {
     this.defeated = false;
     this.phaseChanged = false;
     this.anim = new Animation(getWalkFrames(17, 153, 17, 2), 0.25);
+    this.telegraphing = false;
+    this.telegraphTimer = 0;
+    this.telegraphTargetX = 0;
+    this.telegraphTargetY = 0;
   }
 
   get speed() {
     return this.phase === 2 ? BOSS.phase2Speed : BOSS.speed;
   }
 
-  update(dt, map, player, projectiles, enemies) {
+  update(dt, map, player, spawn, enemies) {
     if (this.dead) return;
     this.grounded = false;
 
@@ -53,14 +56,25 @@ export class Boss {
     this.vy = Math.min(this.vy + PHYSICS.GRAVITY * dt, PHYSICS.MAX_FALL);
     moveWithCollisions(this, map, dt);
 
-    this.fireCooldown -= dt;
-    if (this.fireCooldown <= 0) {
-      this.fireCooldown = this.phase === 2 ? 1.2 : 2;
-      const dx = pc.x - bc.x;
-      const dy = pc.y - bc.y;
-      const len = Math.sqrt(dx * dx + dy * dy) || 1;
-      const speed = COMBAT.PROJECTILE_SPEED * 0.55;
-      projectiles.push(new Projectile(bc.x, bc.y - 10, dx / len, speed, 'boss', -200));
+    if (this.telegraphing) {
+      this.telegraphTimer -= dt;
+      if (this.telegraphTimer <= 0) {
+        this.telegraphing = false;
+        const dx = this.telegraphTargetX - bc.x;
+        const dy = this.telegraphTargetY - bc.y;
+        const len = Math.sqrt(dx * dx + dy * dy) || 1;
+        const speed = COMBAT.PROJECTILE_SPEED * 0.55;
+        spawn(bc.x, bc.y - 10, dx / len, speed, 'boss', -200);
+        this.fireCooldown = this.phase === 2 ? 1.2 : 2;
+      }
+    } else {
+      this.fireCooldown -= dt;
+      if (this.fireCooldown <= 0) {
+        this.telegraphing = true;
+        this.telegraphTimer = 0.4;
+        this.telegraphTargetX = pc.x;
+        this.telegraphTargetY = pc.y;
+      }
     }
 
     if (this.phase === 2) {
@@ -83,6 +97,18 @@ export class Boss {
 
   render(ctx, time) {
     if (this.dead) return;
+
+    if (this.telegraphing) {
+      const bc = center(this);
+      ctx.strokeStyle = `rgba(255, 0, 0, ${0.4 + Math.sin(time * 30) * 0.3})`;
+      ctx.lineWidth = 3;
+      ctx.setLineDash([6, 6]);
+      ctx.beginPath();
+      ctx.moveTo(bc.x, bc.y - 10);
+      ctx.lineTo(this.telegraphTargetX, this.telegraphTargetY);
+      ctx.stroke();
+      ctx.setLineDash([]);
+    }
 
     const pulse = 1 + Math.sin(time * 3) * 0.05;
     try {

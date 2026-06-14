@@ -53,15 +53,15 @@ export const COMBAT = {
 };
 
 export const MINING = {
-  BASE_TIME: 1.2,
+  BASE_TIME: 1.0,
   RANGE: 96,
 };
 
-export const PLANET_TIMER = 180;
+export const PLANET_TIMER = 210;
 
 export const TUNNEL = {
   CAVE_TOP: 8,
-  CAVE_BOTTOM: 11,
-  FLOOR_TY: 12,
+  CAVE_BOTTOM: 15,
+  FLOOR_TY: 16,
   CEILING_TY: 7,
 };

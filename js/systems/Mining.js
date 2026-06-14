@@ -75,6 +75,7 @@ export class MiningSystem {
     for (const t of this.targets) {
       t.progress += dt / miningTime;
     }
+    audio.sfxMiningTick();
 
     for (const t of this.targets) {
       if (t.progress >= 1) {

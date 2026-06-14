@@ -72,6 +72,14 @@ body {
   max-width: 480px;
 }
 
+#hub-planet {
+  display: block;
+  margin: 0 auto 8px;
+  border-radius: 8px;
+  box-shadow: 0 0 20px rgba(80, 180, 255, 0.3);
+  image-rendering: pixelated;
+}
+
 #shop-overlay .panel {
   background-image: linear-gradient(135deg, rgba(26, 26, 46, 0.9) 0%, rgba(22, 33, 62, 0.92) 100%), url('../assets/Preview.png');
 }
@@ -328,6 +336,23 @@ button:disabled {
   color: #7af;
   margin-bottom: 4px;
 }
+.btn-danger {
+  background: linear-gradient(180deg, #a33 0%, #822 100%);
+}
+.btn-danger:hover {
+  filter: brightness(1.2);
+}
+#pause-settings-panel {
+  display: flex;
+  justify-content: center;
+  color: #889;
+  font-size: 0.85rem;
+}
+#pause-settings-panel input[type="range"] {
+  vertical-align: middle;
+  width: 100px;
+  accent-color: #3a6;
+}
 .volume-row {
   color: #889;
   font-size: 0.85rem;
@@ -337,4 +362,67 @@ button:disabled {
   vertical-align: middle;
   width: 100px;
   accent-color: #3a6;
+}
+
+#buffs {
+  position: absolute;
+  top: 44px;
+  left: 16px;
+  display: flex;
+  gap: 8px;
+  font-size: 0.8rem;
+  font-weight: bold;
+  pointer-events: none;
+}
+.buff-shield {
+  color: #66afff;
+  text-shadow: 0 0 6px rgba(68,136,255,0.5);
+}
+.buff-speed {
+  color: #ffdd44;
+  text-shadow: 0 0 6px rgba(255,204,0,0.5);
+}
+
+#ultimate-wrap {
+  min-width: 80px;
+  text-align: right;
+}
+#ultimate-charge {
+  display: inline-block;
+  padding: 4px 8px;
+  font-size: 0.85rem;
+  font-weight: bold;
+  border-radius: 4px;
+  background: #222;
+  border: 1px solid #555;
+  color: #888;
+  transition: all 0.3s;
+}
+#ultimate-charge.ready {
+  color: #ff8800;
+  border-color: #ff8800;
+  background: #221100;
+  animation: pulse 0.5s infinite alternate;
+  text-shadow: 0 0 8px rgba(255,136,0,0.6);
+}
+#ultimate-charge.active {
+  color: #ffe0a0;
+  border-color: #ffcc00;
+  background: #442200;
+  animation: pulse 0.2s infinite alternate;
+  text-shadow: 0 0 12px rgba(255,204,0,0.8);
+}
+
+#wave-warning {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 2rem;
+  font-weight: bold;
+  color: #f44;
+  text-shadow: 0 0 20px rgba(255, 68, 68, 0.6), 0 2px 4px rgba(0,0,0,0.8);
+  animation: pulse 0.3s infinite alternate;
+  pointer-events: none;
+  z-index: 6;
 }

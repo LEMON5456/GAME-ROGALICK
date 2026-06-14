@@ -18,6 +18,8 @@ function defaultMeta() {
       totalOreMined: 0,
       bossDefeated: false,
       sector2Unlocked: false,
+      sector3Unlocked: false,
+      endlessUnlocked: false,
     },
     settings: {
       musicVolume: 0.3,
