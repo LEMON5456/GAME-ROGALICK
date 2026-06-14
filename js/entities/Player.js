@@ -32,6 +32,7 @@ export class Player {
     this.speedBoost = 0;
     this.ultimateCharge = 0;
     this.ultimateActive = 0;
+    this.miningActive = false;
   }
 
   spawn(x, y, run) {
@@ -132,6 +133,11 @@ export class Player {
     return this.hp <= 0;
   }
 
+  loadPickaxe(src) {
+    this.pickaxeImg = new Image();
+    this.pickaxeImg.src = src;
+  }
+
   render(ctx, time) {
     const flash = this.invincible > 0 && Math.floor(time * 20) % 2 === 0;
     if (flash) ctx.globalAlpha = 0.4;
@@ -148,6 +154,16 @@ export class Player {
     }
 
     ctx.globalAlpha = 1;
+
+    if (this.miningActive && this.pickaxeImg && this.pickaxeImg.complete) {
+      const px = this.x + this.w / 2 + this.facing * 6;
+      const py = this.y + 12;
+      ctx.save();
+      ctx.translate(px, py);
+      ctx.scale(this.facing, 1);
+      ctx.drawImage(this.pickaxeImg, -8, -4, 20, 20);
+      ctx.restore();
+    }
 
     if (this.ultimateActive > 0 && fxSheets.isReady()) {
       const frame = Math.floor(time * 15) % fxSheets.get('brightFire').totalFrames;

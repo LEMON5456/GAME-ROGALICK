@@ -555,6 +555,7 @@ export class Game {
 
       this.waveManager.update(this.planetTimer.elapsed, this.map.width, this.map.height);
 
+      this.player.miningActive = this.input.action() && this.mining.findNearbyOres(this.player, this.map, 1).length > 0;
       const mined = this.mining.update(this.input, this.player, this.map, this.run, dt);
       if (mined) {
         this.run.sessionOre[mined.type] += mined.amount;

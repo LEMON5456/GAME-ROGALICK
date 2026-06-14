@@ -28,6 +28,7 @@ function loop(now) {
 
 Promise.all([sprites.load(), planetIcons.load(), effectSheets.load(), fxSheets.load()]).catch(() => {}).then(() => {
   game = new Game(canvas);
+  game.player.loadPickaxe('assets/sprites/pickaxe.png');
   window.addEventListener('resize', () => game?.resize());
   requestAnimationFrame(loop);
 });

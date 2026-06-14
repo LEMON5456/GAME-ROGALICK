@@ -13,6 +13,7 @@ export class AudioManager {
     this.musicBuffer = null;
     this._currentTrack = '';
     this._loadingTrack = '';
+    this._sfxBuffers = {};
   }
 
   init() {
@@ -32,6 +33,7 @@ export class AudioManager {
       this.sfxGain.connect(this.masterGain);
 
       this.initialized = true;
+      this._loadSfx('mine', 'assets/audio/mine.mp3');
     } catch (e) {
       console.warn('Audio not available:', e);
     }
@@ -88,6 +90,28 @@ export class AudioManager {
     source.start(this.ctx.currentTime);
   }
 
+  _loadSfx(key, url) {
+    if (!this.ctx) return;
+    if (this._sfxBuffers[key]) return;
+    fetch(url)
+      .then(r => { if (!r.ok) throw new Error(); return r.arrayBuffer(); })
+      .then(buf => this.ctx.decodeAudioData(buf))
+      .then(decoded => { this._sfxBuffers[key] = decoded; })
+      .catch(() => {});
+  }
+
+  _playSfxBuffer(key, volume = 0.4) {
+    if (!this.ctx || !this._sfxBuffers[key]) return false;
+    const source = this.ctx.createBufferSource();
+    source.buffer = this._sfxBuffers[key];
+    const g = this.ctx.createGain();
+    g.gain.value = volume;
+    source.connect(g);
+    g.connect(this.sfxGain);
+    source.start(this.ctx.currentTime);
+    return true;
+  }
+
   sfxShoot() {
     this._osc('square', 800, 0.08, this.sfxGain, 200);
   }
@@ -97,6 +121,7 @@ export class AudioManager {
   }
 
   sfxMine() {
+    if (this._playSfxBuffer('mine')) return;
     if (!this.ctx) return;
     const osc = this.ctx.createOscillator();
     const g = this.ctx.createGain();
