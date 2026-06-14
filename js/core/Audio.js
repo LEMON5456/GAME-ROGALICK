@@ -14,6 +14,7 @@ export class AudioManager {
     this._currentTrack = '';
     this._loadingTrack = '';
     this._sfxBuffers = {};
+    this._minePlaying = false;
   }
 
   init() {
@@ -121,7 +122,11 @@ export class AudioManager {
   }
 
   sfxMine() {
-    this._playSfxBuffer('mine');
+    if (this._minePlaying) return;
+    if (this._playSfxBuffer('mine')) {
+      this._minePlaying = true;
+      setTimeout(() => { this._minePlaying = false; }, 500);
+    }
   }
 
   sfxHurt() {
