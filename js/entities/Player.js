@@ -1,18 +1,38 @@
 import { PHYSICS, COMBAT, COLORS } from '../constants.js';
 import { moveWithCollisions, isOnGround } from '../world/Physics.js';
-import { sprites, SPRITES } from '../core/Sprites.js';
 import { fxSheets } from '../core/FXSheets.js';
-import { Animation, getWalkFrames } from '../core/Animations.js';
+import { Animation } from '../core/Animations.js';
 import { audio } from '../core/Audio.js';
+
+const FRAME_W = 48;
+const FRAME_H = 80;
+const FRAME_POSITIONS = [48, 144, 240, 336, 432, 528, 624, 720];
+const FRAMES_IDLE = FRAME_POSITIONS.map(x => x);
+const FRAMES_RUN = FRAME_POSITIONS.map(x => x);
+const FRAMES_ATTACK = FRAME_POSITIONS.map(x => x);
+
+const SHEETS = {
+  idle: 'assets/sprites/player/IDLE/idle_right.png',
+  run: 'assets/sprites/player/RUN/run_right.png',
+  attack: 'assets/sprites/player/ATTACK 1/attack1_right.png',
+};
+
+function loadImage(src) {
+  const img = new Image();
+  img.src = src;
+  return img;
+}
 
 export class Player {
   constructor() {
     this.w = 24;
     this.h = 36;
+    this._sheets = {};
     this.reset();
-    this.walkAnim = new Animation(getWalkFrames(0, 85, 17, 2), 0.12);
-    this.idleAnim = new Animation([{ x: 0, y: 85 }], 1, false);
+    this.walkAnim = new Animation(FRAMES_RUN, 0.1);
+    this.idleAnim = new Animation(FRAMES_IDLE, 0.15);
     this.currentAnim = this.idleAnim;
+    Object.keys(SHEETS).forEach(k => { this._sheets[k] = loadImage(SHEETS[k]); });
   }
 
   reset() {
@@ -150,12 +170,39 @@ export class Player {
     this.pickaxeImg.src = src;
   }
 
+  _drawSprite(ctx, time) {
+    const isMoving = this.currentAnim === this.walkAnim;
+    const sheetKey = isMoving ? 'run' : 'idle';
+    const img = this._sheets[sheetKey];
+    if (!img || !img.complete || img.naturalWidth === 0) return false;
+
+    const sx = this.currentAnim.getFrame();
+    const sy = 0;
+    const sw = FRAME_W;
+    const sh = FRAME_H;
+    const scale = 0.6;
+    const dw = FRAME_W * scale;
+    const dh = FRAME_H * scale;
+    const dx = this.x + (this.w - dw) / 2;
+    const dy = this.y + this.h - dh;
+
+    ctx.save();
+    if (this.facing < 0) {
+      ctx.translate(dx + dw, dy);
+      ctx.scale(-1, 1);
+      ctx.drawImage(img, sx, sy, sw, sh, 0, 0, dw, dh);
+    } else {
+      ctx.drawImage(img, sx, sy, sw, sh, dx, dy, dw, dh);
+    }
+    ctx.restore();
+    return true;
+  }
+
   render(ctx, time) {
     const flash = this.invincible > 0 && Math.floor(time * 20) % 2 === 0;
     if (flash) ctx.globalAlpha = 0.4;
 
-    const sprite = this.currentAnim.getFrame();
-    if (!sprites.drawScaled(ctx, sprite, this.x, this.y, this.w, this.h, this.facing < 0)) {
+    if (!this._drawSprite(ctx, time)) {
       ctx.strokeStyle = '#ffffff';
       ctx.lineWidth = 2;
       ctx.fillStyle = COLORS.player;
