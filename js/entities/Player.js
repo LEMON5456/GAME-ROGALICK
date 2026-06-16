@@ -180,7 +180,7 @@ export class Player {
     const sy = 0;
     const sw = FRAME_W;
     const sh = FRAME_H;
-    const scale = 0.6;
+    const scale = 1.0;
     const dw = FRAME_W * scale;
     const dh = FRAME_H * scale;
     const dx = this.x + (this.w - dw) / 2;
