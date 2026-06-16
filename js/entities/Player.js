@@ -176,15 +176,15 @@ export class Player {
     const img = this._sheets[sheetKey];
     if (!img || !img.complete || img.naturalWidth === 0) return false;
 
-    const sx = this.currentAnim.getFrame();
-    const sy = 0;
-    const sw = FRAME_W;
-    const sh = FRAME_H;
-    const scale = 1.0;
-    const dw = FRAME_W * scale;
-    const dh = FRAME_H * scale;
+    const sx = this.currentAnim.getFrame() + 0;
+    const sy = 24;
+    const sw = 12;
+    const sh = 34;
+    const scale = 2.5;
+    const dw = sw * scale;
+    const dh = sh * scale;
     const dx = this.x + (this.w - dw) / 2;
-    const dy = this.y + this.h - dh;
+    const dy = this.y + this.h - dh + 3;
 
     ctx.save();
     if (this.facing < 0) {
