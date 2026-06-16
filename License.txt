@@ -1,7 +1,21 @@
-##################### LICENSE #####################
+	
 
-- You can use this asset in any game project, personal or commercial.
-- DO NOT resell or redistribute AS A GAME ASSET, it has to be part of a project.
-- Credit is not required but it is appreciated.
-- Modify to suit your needs.
-- You are NOT allowed to turn any of my assets to an NFT.
+	Pixel Platformer: Metal Expansion (1.0)
+
+	Created/distributed by Pien Krings (www.piensfactory.nl)
+	Creation date: 14-10-2022
+
+			------------------------------
+
+	License: (Creative Commons Zero, CC0)
+	http://creativecommons.org/publicdomain/zero/1.0/
+
+	This content is free to use in personal, educational and commercial projects.
+	Support me by crediting Pien Krings or www.piensfactory.nl (this is not mandatory)
+
+			------------------------------
+
+	Patreon:  http://patreon.com/piensfactory
+
+	Follow on Twitter for updates:
+	http://twitter.com/pienkrings

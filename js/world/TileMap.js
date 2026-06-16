@@ -1,6 +1,7 @@
 import { TILE, TILE_SIZE, COLORS, TUNNEL } from '../constants.js';
 import { sprites, SPRITES } from '../core/Sprites.js';
 import { fxSheets } from '../core/FXSheets.js';
+import { metalTiles } from '../core/MetalTiles.js';
 import { getBiome } from '../data/biomes.js';
 import { iceAssets } from '../core/IceAssets.js';
 
@@ -228,6 +229,19 @@ export class TileMap {
         const y = ty * TILE_SIZE;
         switch (tile) {
           case TILE.STONE:
+            if (this.biome === 'space') {
+              let tileName = 'wall';
+              if (ty === TUNNEL.FLOOR_TY) tileName = 'floor';
+              else if (ty === TUNNEL.FLOOR_TY + 1) tileName = 'floorDark';
+              else if (ty === TUNNEL.CEILING_TY) tileName = 'wallDark';
+              else if (ty < TUNNEL.CAVE_TOP) tileName = 'wallDark';
+              if (!metalTiles.draw(ctx, tileName, x, y, TILE_SIZE, TILE_SIZE, tx + ty * 7)) {
+                ctx.fillStyle = (tx + ty) % 2 === 0 ? bc.stone : bc.stoneDark;
+                ctx.fillRect(x, y, TILE_SIZE, TILE_SIZE);
+              }
+              if (ty === TUNNEL.FLOOR_TY) this._drawSpaceStarDust(ctx, x, y);
+              break;
+            }
             ctx.fillStyle = (tx + ty) % 2 === 0 ? bc.stone : bc.stoneDark;
             ctx.fillRect(x, y, TILE_SIZE, TILE_SIZE);
             if (isIce) {
@@ -238,10 +252,6 @@ export class TileMap {
               } else if ((tx * 7 + ty * 13) % 7 === 0) {
                 this._drawIceWallCrystal(ctx, x, y);
               }
-            }
-            if (this.biome === 'space' && (ty === TUNNEL.FLOOR_TY || ty === TUNNEL.CEILING_TY)) {
-              this._drawSpacePanel(ctx, x, y);
-              this._drawSpaceStarDust(ctx, x, y);
             }
             if (this.biome === 'lava') {
               if (ty === TUNNEL.CEILING_TY) this._drawLavaDrip(ctx, x, y);
