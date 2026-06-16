@@ -13,8 +13,8 @@ const FRAMES_WALK = [0, 100, 200, 300, 400, 500, 600, 700];
 const CROP_X = 36;
 const CROP_Y = 31;
 const CROP_W = 40;
-const CROP_H = 28;
-const SPRITE_SCALE = 1.5;
+const CROP_H = 29;
+const SPRITE_SCALE = 2.8;
 
 const SHEETS = {
   idle: 'assets/sprites/soldier/Soldier-Idle.png',
@@ -188,7 +188,7 @@ export class Player {
     const dw = sw * scale;
     const dh = sh * scale;
     const dx = this.x + (this.w - dw) / 2;
-    const dy = this.y + this.h - dh + 2;
+    const dy = this.y + this.h - dh + Math.round(4 * SPRITE_SCALE);
 
     ctx.save();
     if (this.facing < 0) {
