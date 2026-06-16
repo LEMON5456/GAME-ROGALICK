@@ -4,17 +4,21 @@ import { fxSheets } from '../core/FXSheets.js';
 import { Animation } from '../core/Animations.js';
 import { audio } from '../core/Audio.js';
 
-const FRAME_W = 48;
-const FRAME_H = 80;
-const FRAME_POSITIONS = [48, 144, 240, 336, 432, 528, 624, 720];
-const FRAMES_IDLE = FRAME_POSITIONS.map(x => x);
-const FRAMES_RUN = FRAME_POSITIONS.map(x => x);
-const FRAMES_ATTACK = FRAME_POSITIONS.map(x => x);
+const FRAME_W = 100;
+const FRAME_H = 100;
+const FRAME_STEP = 100;
+const FRAMES_IDLE = [0, 100, 200, 300, 400, 500];
+const FRAMES_WALK = [0, 100, 200, 300, 400, 500, 600, 700];
+
+const CROP_X = 36;
+const CROP_Y = 31;
+const CROP_W = 40;
+const CROP_H = 28;
+const SPRITE_SCALE = 1.5;
 
 const SHEETS = {
-  idle: 'assets/sprites/player/IDLE/idle_right.png',
-  run: 'assets/sprites/player/RUN/run_right.png',
-  attack: 'assets/sprites/player/ATTACK 1/attack1_right.png',
+  idle: 'assets/sprites/soldier/Soldier-Idle.png',
+  run: 'assets/sprites/soldier/Soldier-Walk.png',
 };
 
 function loadImage(src) {
@@ -29,7 +33,7 @@ export class Player {
     this.h = 36;
     this._sheets = {};
     this.reset();
-    this.walkAnim = new Animation(FRAMES_RUN, 0.1);
+    this.walkAnim = new Animation(FRAMES_WALK, 0.1);
     this.idleAnim = new Animation(FRAMES_IDLE, 0.15);
     this.currentAnim = this.idleAnim;
     Object.keys(SHEETS).forEach(k => { this._sheets[k] = loadImage(SHEETS[k]); });
@@ -176,15 +180,15 @@ export class Player {
     const img = this._sheets[sheetKey];
     if (!img || !img.complete || img.naturalWidth === 0) return false;
 
-    const sx = this.currentAnim.getFrame() + 0;
-    const sy = 24;
-    const sw = 12;
-    const sh = 34;
-    const scale = 2.5;
+    const sx = this.currentAnim.getFrame() + CROP_X;
+    const sy = CROP_Y;
+    const sw = CROP_W;
+    const sh = CROP_H;
+    const scale = SPRITE_SCALE;
     const dw = sw * scale;
     const dh = sh * scale;
     const dx = this.x + (this.w - dw) / 2;
-    const dy = this.y + this.h - dh + 3;
+    const dy = this.y + this.h - dh + 2;
 
     ctx.save();
     if (this.facing < 0) {

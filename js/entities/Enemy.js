@@ -10,6 +10,13 @@ const ENEMY_SPRITES = {
   spitter: SPRITES.spitter,
 };
 
+const ORC_FRAMES = [0, 100, 200, 300, 400, 500];
+let orcImg = null;
+export function loadOrcSheet() {
+  orcImg = new Image();
+  orcImg.src = 'assets/sprites/orc/Orc-Walk.png';
+}
+
 export class Enemy {
   constructor(type, x, y, patrolDir = 1) {
     const def = ENEMIES[type];
@@ -33,6 +40,9 @@ export class Enemy {
     this.contact = def.contact || false;
     this.etherDrop = def.etherDrop || 0;
     this.anim = new Animation(getWalkFrames(0, this.type === 'spitter' ? 119 : 153, 17, 2), 0.2);
+    if (type === 'orc') {
+      this.anim = new Animation([0, 1, 2, 3, 4, 5], 0.12);
+    }
   }
 
   update(dt, map, player, spawn) {
@@ -80,6 +90,31 @@ export class Enemy {
         this.vy = Math.min(this.vy + PHYSICS.GRAVITY * dt, PHYSICS.MAX_FALL);
       }
       moveWithCollisions(this, map, dt);
+    } else if (this.type === 'orc') {
+      this.fireCooldown -= dt;
+      const pc = center(player);
+      const ec = center(this);
+      const d = dist(ec.x, ec.y, pc.x, pc.y);
+      if (d < this.range && this.fireCooldown <= 0) {
+        this.fireCooldown = this.fireRate;
+        const dx = pc.x - ec.x;
+        const dy = pc.y - ec.y;
+        const len = Math.sqrt(dx * dx + dy * dy) || 1;
+        const speed = COMBAT.PROJECTILE_SPEED * 0.8;
+        spawn(ec.x, ec.y, dx / len, speed, 'orc', dy / len * speed);
+      }
+      const dPlayer = dist(ec.x, ec.y, pc.x, pc.y);
+      if (dPlayer < 300) {
+        const dx = pc.x - ec.x;
+        const dy = pc.y - ec.y;
+        const len = Math.sqrt(dx * dx + dy * dy) || 1;
+        this.vx = (dx / len) * this.speed;
+        this.vy = Math.min(this.vy + PHYSICS.GRAVITY * dt, PHYSICS.MAX_FALL);
+      } else {
+        this.vx = this.patrolDir * this.speed * 0.4;
+        this.vy = Math.min(this.vy + PHYSICS.GRAVITY * dt, PHYSICS.MAX_FALL);
+      }
+      moveWithCollisions(this, map, dt);
     }
   }
 
@@ -91,11 +126,18 @@ export class Enemy {
   render(ctx) {
     if (this.dead) return;
 
-    const sprite = this.anim.getFrame();
-    const flip = this.type === 'crawler' ? this.patrolDir < 0 : false;
-    if (!sprites.drawScaled(ctx, sprite, this.x, this.y, this.w, this.h, flip)) {
-      ctx.fillStyle = this.type === 'crawler' ? COLORS.crawler : this.type === 'kamikaze' ? '#ff8040' : COLORS.spitter;
-      ctx.fillRect(this.x, this.y, this.w, this.h);
+    if (this.type === 'orc' && orcImg && orcImg.complete && orcImg.naturalWidth > 0) {
+      const frameIdx = this.anim.getFrame();
+      ctx.save();
+      ctx.drawImage(orcImg, ORC_FRAMES[frameIdx] + 44, 41, 22, 16, this.x - 4, this.y - 4, this.w + 8, this.h + 8);
+      ctx.restore();
+    } else {
+      const sprite = this.anim.getFrame();
+      const flip = this.type === 'crawler' ? this.patrolDir < 0 : false;
+      if (!sprites.drawScaled(ctx, sprite, this.x, this.y, this.w, this.h, flip)) {
+        ctx.fillStyle = this.type === 'crawler' ? COLORS.crawler : this.type === 'kamikaze' ? '#ff8040' : this.type === 'orc' ? '#4a8' : COLORS.spitter;
+        ctx.fillRect(this.x, this.y, this.w, this.h);
+      }
     }
 
     if (this.elite) {

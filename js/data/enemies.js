@@ -45,6 +45,19 @@ export const ENEMIES = {
     contact: false,
     etherDrop: 2,
   },
+  orc: {
+    type: 'orc',
+    name: 'Орк',
+    w: 28,
+    h: 32,
+    hp: 60,
+    damage: 18,
+    speed: 60,
+    fireRate: 1.8,
+    range: 280,
+    contact: false,
+    etherDrop: 2,
+  },
 };
 
 export const BOSS = {
