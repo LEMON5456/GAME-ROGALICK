@@ -83,6 +83,31 @@ export class BackgroundImage {
     ctx.beginPath();
     ctx.ellipse(planetScreenX, h * 0.22 + 3, 70, 14, 0.3, 0, Math.PI * 2);
     ctx.stroke();
+
+    for (let c = 0; c < 3; c++) {
+      const phase = c * 2.1;
+      const t = (time * 0.06 + phase) % 12;
+      const cx2 = t * w / 12 - 200;
+      const cy2 = h * (0.05 + c * 0.08) + t * h * 0.035;
+      const tailLen = 120 + Math.sin(t * 0.5 + c) * 30;
+      const headX = cx2 + tailLen * 0.7;
+      const headY = cy2 - tailLen * 0.35;
+      if (headX < -100 || headX > w + 100) continue;
+      const grad2 = ctx.createLinearGradient(cx2, cy2, headX, headY);
+      grad2.addColorStop(0, 'rgba(255, 255, 255, 0)');
+      grad2.addColorStop(0.6, 'rgba(200, 220, 255, 0.3)');
+      grad2.addColorStop(1, 'rgba(255, 255, 255, 0.8)');
+      ctx.strokeStyle = grad2;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(cx2, cy2);
+      ctx.lineTo(headX, headY);
+      ctx.stroke();
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+      ctx.beginPath();
+      ctx.arc(headX, headY, 1.5, 0, Math.PI * 2);
+      ctx.fill();
+    }
   }
 
   _ice(ctx, w, h, px, time) {
@@ -123,18 +148,40 @@ export class BackgroundImage {
     ctx.closePath();
     ctx.fill();
 
-    ctx.fillStyle = 'rgba(180, 220, 255, 0.06)';
+    ctx.fillStyle = 'rgba(180, 220, 255, 0.25)';
     ctx.beginPath();
     ctx.moveTo(0, h);
     for (let x = -50; x <= w + 50; x += 20) {
       const rx = ((x - px * 0.05) % period + period) % period;
       const my = h * 0.28 + Math.sin(rx / period * Math.PI * 4) * 55
         + Math.sin(rx / period * Math.PI * 10) * 25 + Math.sin(rx / period * Math.PI * 20) * 10;
-      ctx.lineTo(Math.max(0, Math.min(w, x)), Math.min(h, my - 10));
+      ctx.lineTo(Math.max(0, Math.min(w, x)), Math.min(h, my - 8));
     }
     ctx.lineTo(w + 50, h);
     ctx.closePath();
     ctx.fill();
+
+    ctx.fillStyle = 'rgba(220, 240, 255, 0.15)';
+    ctx.beginPath();
+    ctx.moveTo(0, h);
+    for (let x = -50; x <= w + 50; x += 20) {
+      const rx = ((x - px * 0.05) % period + period) % period;
+      const my = h * 0.28 + Math.sin(rx / period * Math.PI * 4) * 55
+        + Math.sin(rx / period * Math.PI * 10) * 25 + Math.sin(rx / period * Math.PI * 20) * 10;
+      ctx.lineTo(Math.max(0, Math.min(w, x)), Math.min(h, my - 14));
+    }
+    ctx.lineTo(w + 50, h);
+    ctx.closePath();
+    ctx.fill();
+
+    for (let i = 0; i < 60; i++) {
+      const sx = ((i * 379 + 53) % (w + 200)) - 100;
+      const sy = ((i * 601 + 97) % 1000) / 1000 * h * 0.7;
+      const ss = 1 + ((i * 173 + 29) % 3);
+      const fall = Math.sin(time * 0.6 + i * 1.3 + sy * 0.01) * h * 0.02;
+      ctx.fillStyle = `rgba(200, 230, 255, ${0.02 + ((i * 47 + 13) % 5) * 0.01})`;
+      ctx.fillRect(sx, (sy + fall + sy * 0.02 * Math.sin(time * 0.3 + i)) % (h * 0.8), ss, ss);
+    }
   }
 
   _lava(ctx, w, h, px, time) {
@@ -175,6 +222,25 @@ export class BackgroundImage {
       ctx.fillStyle = `rgba(255, ${130 + i * 8}, 30, ${0.03 + 0.025 * Math.sin(time * 0.6 + i)})`;
       ctx.beginPath();
       ctx.arc(ex, ey, Math.max(0.5, es), 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    for (let i = 0; i < 6; i++) {
+      const lx = ((i * 239 + 31) % w);
+      const lPeriod = 500;
+      const rx = ((lx - px * 0.04) % lPeriod + lPeriod) % lPeriod;
+      const baseY = h * 0.32 + Math.sin(rx / lPeriod * Math.PI * 3) * 55
+        + Math.sin(rx / lPeriod * Math.PI * 8) * 22;
+      const lw = 3 + ((i * 97 + 13) % 4);
+      const lh = 50 + ((i * 163 + 41) % 60) + Math.sin(time * 0.5 + i * 1.1) * 10;
+      const lxOff = ((i * 71 + 17) % 20) - 10;
+      ctx.fillStyle = `rgba(255, ${90 + i * 20}, 20, ${0.12 + 0.06 * Math.sin(time * 0.7 + i * 1.3)})`;
+      ctx.beginPath();
+      ctx.ellipse(lx + lxOff - px * 0.04, baseY + lh * 0.4, lw, lh * 0.4, 0.1 + i * 0.1, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = `rgba(255, 180, 60, ${0.06 + 0.04 * Math.sin(time * 0.9 + i * 0.7)})`;
+      ctx.beginPath();
+      ctx.ellipse(lx + lxOff - px * 0.04, baseY + lh * 0.45, lw * 0.5, lh * 0.2, 0.1 + i * 0.1, 0, Math.PI * 2);
       ctx.fill();
     }
   }
