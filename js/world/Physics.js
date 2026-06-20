@@ -10,10 +10,10 @@ export function aabbOverlap(a, b) {
 }
 
 export function moveWithCollisions(entity, map, dt) {
-  entity.x += entity.vx * dt;
-  resolveAxis(entity, map, 'x');
   entity.y += entity.vy * dt;
   resolveAxis(entity, map, 'y');
+  entity.x += entity.vx * dt;
+  resolveAxis(entity, map, 'x');
 }
 
 export function overlapsSolid(entity, map) {

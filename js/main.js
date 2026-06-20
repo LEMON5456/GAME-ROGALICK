@@ -4,6 +4,8 @@ import { planetIcons } from './core/PlanetIcons.js';
 import { effectSheets } from './core/EffectSheets.js';
 import { fxSheets } from './core/FXSheets.js';
 import { metalTiles } from './core/MetalTiles.js';
+import { iceTiles } from './core/IceTiles.js';
+import { lavaTiles } from './core/LavaTiles.js';
 import { loadArrowSprite } from './entities/Projectile.js';
 import { loadOrcSheet } from './entities/Enemy.js';
 
@@ -32,6 +34,8 @@ function loop(now) {
 loadArrowSprite();
 loadOrcSheet();
 metalTiles.load();
+iceTiles.load();
+lavaTiles.load();
 Promise.all([sprites.load(), planetIcons.load(), effectSheets.load(), fxSheets.load()]).catch(() => {}).then(() => {
   game = new Game(canvas);
   game.player.loadPickaxe('assets/sprites/pickaxe.png');

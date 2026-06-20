@@ -3,7 +3,8 @@ import { sprites, SPRITES } from '../core/Sprites.js';
 import { fxSheets } from '../core/FXSheets.js';
 import { metalTiles } from '../core/MetalTiles.js';
 import { getBiome } from '../data/biomes.js';
-import { iceAssets } from '../core/IceAssets.js';
+import { iceTiles } from '../core/IceTiles.js';
+import { lavaTiles } from '../core/LavaTiles.js';
 
 export class TileMap {
   constructor(width, height, biome = 'space') {
@@ -155,9 +156,9 @@ export class TileMap {
     }
   }
 
-  _drawLavaEmber(ctx, x, y) {
+  _drawLavaEmber(ctx, x, y, time) {
     const seed = (x * 13 + y * 11) % 100;
-    const t = performance.now() * 0.001;
+    const t = time * 0.001;
     const count = 2 + (seed % 3);
     for (let i = 0; i < count; i++) {
       const ex = x + 2 + (seed * 7 + i * 13) % (TILE_SIZE - 4);
@@ -174,10 +175,10 @@ export class TileMap {
     }
   }
 
-  _drawLavaDrip(ctx, x, y) {
+  _drawLavaDrip(ctx, x, y, time) {
     const seed = (x * 17 + y * 7) % 100;
     if (seed % 3 !== 0) return;
-    const t = performance.now() * 0.001;
+    const t = time * 0.001;
     const baseY = y + TILE_SIZE;
     const phase = (t * 1.5 + seed) % 1;
     const dy = phase * TILE_SIZE * 0.7;
@@ -190,10 +191,10 @@ export class TileMap {
     ctx.fillRect(x + TILE_SIZE / 2 - 0.5, baseY + dy, 1, len);
   }
 
-  _drawLavaVent(ctx, x, y) {
+  _drawLavaVent(ctx, x, y, time) {
     const seed = (x * 11 + y * 13) % 100;
     if (seed % 5 !== 0) return;
-    const t = performance.now() * 0.001;
+    const t = time * 0.001;
     const ventW = TILE_SIZE * 0.5;
     const ventH = 4;
     const vx = x + (TILE_SIZE - ventW) / 2;
@@ -213,7 +214,7 @@ export class TileMap {
     }
   }
 
-  render(ctx, camera) {
+  render(ctx, camera, time = 0) {
     const bc = this.getBiomeColors();
     const isIce = this.biome === 'ice';
     const startTx = Math.max(0, Math.floor(camera.x / TILE_SIZE));
@@ -242,23 +243,30 @@ export class TileMap {
               if (ty === TUNNEL.FLOOR_TY) this._drawSpaceStarDust(ctx, x, y);
               break;
             }
-            ctx.fillStyle = (tx + ty) % 2 === 0 ? bc.stone : bc.stoneDark;
-            ctx.fillRect(x, y, TILE_SIZE, TILE_SIZE);
             if (isIce) {
-              this._drawIceFrost(ctx, x, y, bc);
-              if (ty === TUNNEL.FLOOR_TY) {
-                this._drawIceFloor(ctx, x, y);
-                if ((tx * 7 + ty * 13) % 5 === 0) this._drawIceStalagmite(ctx, x, y);
-              } else if ((tx * 7 + ty * 13) % 7 === 0) {
-                this._drawIceWallCrystal(ctx, x, y);
+              let texName = 'floor';
+              if (ty === TUNNEL.CEILING_TY || ty < TUNNEL.CAVE_TOP) texName = 'ceiling';
+              else if (ty < TUNNEL.FLOOR_TY && ty > TUNNEL.CEILING_TY) texName = 'wall';
+              if (!iceTiles.draw(ctx, texName, x, y, TILE_SIZE, TILE_SIZE, tx * 17 + ty * 31, ty * 13 + tx * 7)) {
+                ctx.fillStyle = (tx + ty) % 2 === 0 ? bc.stone : bc.stoneDark;
+                ctx.fillRect(x, y, TILE_SIZE, TILE_SIZE);
               }
-            }
-            if (this.biome === 'lava') {
-              if (ty === TUNNEL.CEILING_TY) this._drawLavaDrip(ctx, x, y);
-              if (ty === TUNNEL.FLOOR_TY) {
-                this._drawLavaEmber(ctx, x, y);
-                this._drawLavaVent(ctx, x, y);
+            } else if (this.biome === 'lava') {
+              let texName = 'floor';
+              if (ty === TUNNEL.CEILING_TY || ty < TUNNEL.CAVE_TOP) texName = 'ceiling';
+              else if (ty < TUNNEL.FLOOR_TY && ty > TUNNEL.CEILING_TY) texName = 'wall';
+              if (!lavaTiles.draw(ctx, texName, x, y, TILE_SIZE, TILE_SIZE, tx * 17 + ty * 31, ty * 13 + tx * 7)) {
+                ctx.fillStyle = (tx + ty) % 2 === 0 ? bc.stone : bc.stoneDark;
+                ctx.fillRect(x, y, TILE_SIZE, TILE_SIZE);
               }
+              if (ty === TUNNEL.CEILING_TY) this._drawLavaDrip(ctx, x, y, time);
+              if (ty === TUNNEL.FLOOR_TY) {
+                this._drawLavaEmber(ctx, x, y, time);
+                this._drawLavaVent(ctx, x, y, time);
+              }
+            } else {
+              ctx.fillStyle = (tx + ty) % 2 === 0 ? bc.stone : bc.stoneDark;
+              ctx.fillRect(x, y, TILE_SIZE, TILE_SIZE);
             }
             break;
           case TILE.ORE_IRON:
@@ -326,10 +334,10 @@ export class TileMap {
             }
             if (fxSheets.isReady()) {
               if (this.biome === 'lava') {
-                const frame = Math.floor(performance.now() * 0.008 + (tx + ty) * 7) % fxSheets.get('fire').totalFrames;
+                const frame = Math.floor(time * 8 + (tx + ty) * 7) % (fxSheets.get('fire')?.totalFrames ?? 1);
                 fxSheets.drawFrame(ctx, 'fire', frame, x - 4, y - 4, TILE_SIZE + 8, TILE_SIZE + 8);
               } else if (this.biome === 'ice') {
-                const frame = Math.floor(performance.now() * 0.008 + (tx + ty) * 7) % fxSheets.get('blueFire').totalFrames;
+                const frame = Math.floor(time * 8 + (tx + ty) * 7) % (fxSheets.get('blueFire')?.totalFrames ?? 1);
                 fxSheets.drawFrame(ctx, 'blueFire', frame, x - 4, y - 4, TILE_SIZE + 8, TILE_SIZE + 8);
               }
             }
@@ -425,7 +433,7 @@ export class TileMap {
   }
 
   renderIceSprites(ctx, camera) {
-    if (this.biome !== 'ice' || !iceAssets.isReady()) return;
+    if (this.biome !== 'ice') return;
     const bc = this.getBiomeColors();
     const startTx = Math.max(0, Math.floor(camera.x / TILE_SIZE));
     const endTx = Math.min(this.width, Math.ceil((camera.x + camera.viewWidth) / TILE_SIZE) + 1);
@@ -435,17 +443,9 @@ export class TileMap {
       for (let ty = Math.max(0, TUNNEL.CEILING_TY - 1); ty < TUNNEL.FLOOR_TY + 2; ty++) {
         const tile = this.get(tx, ty);
         if (tile === TILE.HAZARD && ty <= TUNNEL.CAVE_TOP + 1) {
-          iceAssets.draw(ctx, 'icicles', x, ty * TILE_SIZE - 8, TILE_SIZE, TILE_SIZE + 8);
+          const idx = (tx * 3 + ty * 7) % 3;
+          iceTiles.drawDecor(ctx, idx, x, ty * TILE_SIZE - 8, TILE_SIZE, TILE_SIZE + 8);
         }
-      }
-    }
-    iceAssets.draw(ctx, 'wall_left', -TILE_SIZE, TUNNEL.CEILING_TY * TILE_SIZE, TILE_SIZE + 32, (TUNNEL.FLOOR_TY + 1) * TILE_SIZE);
-    iceAssets.draw(ctx, 'wall_right', (this.width - 1) * TILE_SIZE, TUNNEL.CEILING_TY * TILE_SIZE, TILE_SIZE + 32, (TUNNEL.FLOOR_TY + 1) * TILE_SIZE);
-
-    for (let tx = startTx; tx < endTx; tx++) {
-      const tile = this.get(tx, TUNNEL.FLOOR_TY);
-      if (tile === TILE.STONE) {
-        iceAssets.draw(ctx, 'floor', tx * TILE_SIZE, TUNNEL.FLOOR_TY * TILE_SIZE, TILE_SIZE, TILE_SIZE);
       }
     }
 
@@ -453,10 +453,9 @@ export class TileMap {
       const tile = this.get(tx, TUNNEL.CAVE_TOP);
       if (tile === TILE.AIR) {
         const below = this.get(tx, TUNNEL.CAVE_TOP + 1);
-        if (below === TILE.AIR) {
-          if ((tx * 7) % 11 === 0) {
-            iceAssets.draw(ctx, 'crystal_small', tx * TILE_SIZE - TILE_SIZE, (TUNNEL.CAVE_TOP - 1) * TILE_SIZE, TILE_SIZE + 24, TILE_SIZE + 16);
-          }
+        if (below === TILE.AIR && (tx * 7) % 11 === 0) {
+          const idx = 4 + (tx % 4);
+          iceTiles.drawDecor(ctx, idx, tx * TILE_SIZE, (TUNNEL.CAVE_TOP - 1) * TILE_SIZE + 4, TILE_SIZE, TILE_SIZE + 8);
         }
       }
     }

@@ -16,6 +16,10 @@ export function generatePlanet(config, biome = 'space') {
   carveSpawnRoom(map);
   carveExitZone(map, width);
   placeJumpableStumps(map, width);
+  carveVerticalPockets(map, width);
+  carveChasms(map, width);
+  if (biome === 'lava') carveLavaColumns(map, width);
+  if (biome === 'ice') carveIceShelves(map, width);
 
   if (hazards) {
     placeHazards(map, width);
@@ -130,6 +134,72 @@ function placeJumpableStumps(map, width) {
 
     map.set(tx, CAVE_BOTTOM, TILE.STONE);
     tx += 3;
+  }
+}
+
+function carveVerticalPockets(map, width) {
+  for (let i = 0; i < randInt(2, 4); i++) {
+    const tx = randInt(25, width - 25);
+    if (map.get(tx, CEILING_TY - 1) !== TILE.AIR) continue;
+    const pocketH = randInt(2, 4);
+    for (let dy = 1; dy <= pocketH; dy++) {
+      const ty = CEILING_TY - dy;
+      if (ty < 2) break;
+      map.set(tx, ty, TILE.AIR);
+      map.set(tx + 1, ty, TILE.AIR);
+    }
+  }
+  for (let i = 0; i < randInt(1, 3); i++) {
+    const tx = randInt(25, width - 25);
+    if (map.get(tx, FLOOR_TY - 1) !== TILE.AIR) continue;
+    const pitH = randInt(2, 3);
+    for (let dy = 1; dy <= pitH; dy++) {
+      const ty = FLOOR_TY + dy;
+      if (ty >= map.height - 1) break;
+      map.set(tx, ty, TILE.AIR);
+      map.set(tx + 1, ty, TILE.AIR);
+    }
+  }
+}
+
+function carveChasms(map, width) {
+  for (let i = 0; i < randInt(1, 2); i++) {
+    const tx = randInt(30, width - 30);
+    const gapW = randInt(2, 4);
+    for (let dx = 0; dx < gapW; dx++) {
+      for (let ty = FLOOR_TY; ty <= FLOOR_TY + 1; ty++) {
+        if (ty >= map.height) break;
+        map.set(tx + dx, ty, TILE.AIR);
+      }
+    }
+  }
+}
+
+function carveLavaColumns(map, width) {
+  for (let i = 0; i < randInt(2, 4); i++) {
+    const tx = randInt(25, width - 25);
+    if (map.get(tx, CEILING_TY) !== TILE.STONE) continue;
+    if (map.get(tx, CEILING_TY + 1) !== TILE.AIR) continue;
+    const colH = randInt(3, 5);
+    for (let dy = 0; dy < colH; dy++) {
+      const ty = CEILING_TY + 1 + dy;
+      if (ty >= FLOOR_TY) break;
+      map.set(tx, ty, TILE.STONE);
+      map.set(tx + 1, ty, TILE.STONE);
+    }
+  }
+}
+
+function carveIceShelves(map, width) {
+  for (let i = 0; i < randInt(1, 3); i++) {
+    const tx = randInt(25, width - 25);
+    if (map.get(tx, CAVE_TOP) !== TILE.AIR) continue;
+    if (map.get(tx, CAVE_TOP - 1) !== TILE.STONE) continue;
+    const shelfW = randInt(3, 5);
+    for (let dx = 0; dx < shelfW; dx++) {
+      map.set(tx + dx, CAVE_TOP, TILE.STONE);
+      map.set(tx + dx, CAVE_TOP - 1, TILE.AIR);
+    }
   }
 }
 

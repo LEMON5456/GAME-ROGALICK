@@ -15,6 +15,8 @@ export class AudioManager {
     this._loadingTrack = '';
     this._sfxBuffers = {};
     this._minePlaying = false;
+    this._ambientSource = null;
+    this._ambientGain = null;
   }
 
   init() {
@@ -36,6 +38,10 @@ export class AudioManager {
       this.initialized = true;
       this._loadSfx('mine', 'assets/audio/mine.mp3');
       this._loadSfx('walkMetal', 'assets/audio/walk_metal.mp3');
+      this._loadSfx('walkIce', 'assets/audio/walk_ice.mp3');
+      this._loadSfx('walkGround', 'assets/audio/walk_ground.mp3');
+      this._loadSfx('blizzardAmbient', 'assets/audio/blizzard_ambient.mp3');
+      this._loadSfx('fireAmbient', 'assets/audio/fire_ambient.mp3');
     } catch (e) {
       console.warn('Audio not available:', e);
     }
@@ -133,6 +139,14 @@ export class AudioManager {
 
   sfxWalk() {
     this._playSfxBuffer('walkMetal', 0.3, 0.15);
+  }
+
+  sfxWalkIce() {
+    this._playSfxBuffer('walkIce', 0.3, 0.15);
+  }
+
+  sfxWalkGround() {
+    this._playSfxBuffer('walkGround', 0.3, 0.15);
   }
 
   sfxClick() {
@@ -268,6 +282,71 @@ export class AudioManager {
     this._osc('sine', 200, 0.03, this.sfxGain, 120);
   }
 
+  sfxUltimate() {
+    if (!this.ctx) return;
+    [440, 554, 659, 880, 1108, 1319].forEach((freq, i) => {
+      const osc = this.ctx.createOscillator();
+      const g = this.ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(freq, this.ctx.currentTime + i * 0.06);
+      g.gain.setValueAtTime(0.18, this.ctx.currentTime + i * 0.06);
+      g.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + i * 0.06 + 0.12);
+      osc.connect(g);
+      g.connect(this.sfxGain);
+      osc.start(this.ctx.currentTime + i * 0.06);
+      osc.stop(this.ctx.currentTime + i * 0.06 + 0.12);
+    });
+  }
+
+  sfxWave() {
+    if (!this.ctx) return;
+    [880, 660, 880, 660].forEach((freq, i) => {
+      const osc = this.ctx.createOscillator();
+      const g = this.ctx.createGain();
+      osc.type = 'square';
+      osc.frequency.setValueAtTime(freq, this.ctx.currentTime + i * 0.1);
+      g.gain.setValueAtTime(0.1, this.ctx.currentTime + i * 0.1);
+      g.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + i * 0.1 + 0.15);
+      osc.connect(g);
+      g.connect(this.sfxGain);
+      osc.start(this.ctx.currentTime + i * 0.1);
+      osc.stop(this.ctx.currentTime + i * 0.1 + 0.15);
+    });
+  }
+
+  sfxDeploy() {
+    if (!this.ctx) return;
+    const osc = this.ctx.createOscillator();
+    const g = this.ctx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(110, this.ctx.currentTime);
+    osc.frequency.linearRampToValueAtTime(55, this.ctx.currentTime + 0.3);
+    g.gain.setValueAtTime(0.25, this.ctx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.4);
+    osc.connect(g);
+    g.connect(this.sfxGain);
+    osc.start(this.ctx.currentTime);
+    osc.stop(this.ctx.currentTime + 0.4);
+    this._noise(0.2, this.sfxGain);
+  }
+
+  sfxShieldBreak() {
+    if (!this.ctx) return;
+    this._noise(0.15, this.sfxGain);
+    [800, 600, 400, 200].forEach((freq, i) => {
+      const osc = this.ctx.createOscillator();
+      const g = this.ctx.createGain();
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(freq, this.ctx.currentTime + i * 0.04);
+      g.gain.setValueAtTime(0.08, this.ctx.currentTime + i * 0.04);
+      g.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + i * 0.04 + 0.08);
+      osc.connect(g);
+      g.connect(this.sfxGain);
+      osc.start(this.ctx.currentTime + i * 0.04);
+      osc.stop(this.ctx.currentTime + i * 0.04 + 0.08);
+    });
+  }
+
   sfxEliteSpawn() {
     if (!this.ctx) return;
     [110, 165, 220].forEach((freq, i) => {
@@ -306,6 +385,35 @@ export class AudioManager {
     g2.connect(this.sfxGain);
     osc2.start(this.ctx.currentTime + 0.1);
     osc2.stop(this.ctx.currentTime + 0.2);
+  }
+
+  startAmbient(biome) {
+    this.stopAmbient();
+    let key = '';
+    if (biome === 'ice') key = 'blizzardAmbient';
+    else if (biome === 'lava') key = 'fireAmbient';
+    if (!key || !this._sfxBuffers[key] || !this.ctx) return;
+    const source = this.ctx.createBufferSource();
+    source.buffer = this._sfxBuffers[key];
+    source.loop = true;
+    const g = this.ctx.createGain();
+    g.gain.value = 0.12;
+    source.connect(g);
+    g.connect(this.sfxGain);
+    source.start();
+    this._ambientSource = source;
+    this._ambientGain = g;
+  }
+
+  stopAmbient() {
+    if (this._ambientSource) {
+      try { this._ambientSource.stop(); } catch {}
+      this._ambientSource = null;
+    }
+    if (this._ambientGain) {
+      this._ambientGain.disconnect();
+      this._ambientGain = null;
+    }
   }
 
   _loadTrack(url) {
@@ -377,11 +485,13 @@ export class AudioManager {
       } catch {}
       this.musicSource = null;
     }
+    this.stopAmbient();
   }
 
   setBiome(biome) {
     this.biome = biome;
     this.startMusic(biome);
+    this.startAmbient(biome);
   }
 }
 

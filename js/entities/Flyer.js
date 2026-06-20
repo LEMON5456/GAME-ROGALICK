@@ -1,7 +1,7 @@
 import { ENEMIES } from '../data/enemies.js';
 import { COMBAT } from '../constants.js';
 import { center, dist } from '../world/Physics.js';
-import { sprites, SPRITES } from '../core/Sprites.js';
+import { sprites } from '../core/Sprites.js';
 import { Animation, getWalkFrames } from '../core/Animations.js';
 import { audio } from '../core/Audio.js';
 

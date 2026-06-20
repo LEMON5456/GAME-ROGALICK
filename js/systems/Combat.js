@@ -8,7 +8,12 @@ function spawnDamageText(x, y, dmg, color, list) {
 }
 
 export class CombatSystem {
+  constructor() {
+    this.screenShake = 0;
+  }
+
   update(player, enemies, boss, projectiles, run, dt, crates, floatTexts) {
+    this.screenShake = Math.max(0, this.screenShake - dt);
     const hazardTimer = (this.hazardTimer || 0) - dt;
     this.hazardTimer = hazardTimer;
 
@@ -28,7 +33,8 @@ export class CombatSystem {
     for (const e of enemies) {
       if (e.dead) continue;
       if (e.contact && aabbOverlap(e, player)) {
-        if (player.takeDamage(e.damage)) {
+        const dmg = e._buffed ? Math.round(e.damage * 1.5) : e.damage;
+        if (player.takeDamage(dmg)) {
           audio.sfxHurt();
           return 'death';
         }
@@ -55,7 +61,7 @@ export class CombatSystem {
           e.takeDamage(dmg);
           spawnDamageText(e.x + e.w / 2, e.y, dmg, e.elite ? '#ffd700' : '#ffffff', floatTexts);
           if (e.dead) audio.sfxEnemyDeath();
-          else audio.sfxHit();
+          else { audio.sfxHit(); this.screenShake = 0.1; }
           break;
         }
       }
@@ -65,7 +71,7 @@ export class CombatSystem {
         boss.takeDamage(dmg);
         spawnDamageText(boss.x + boss.w / 2, boss.y, dmg, '#ff6600', floatTexts);
         if (boss.dead) audio.sfxEnemyDeath();
-        else audio.sfxHit();
+        else { audio.sfxHit(); this.screenShake = 0.15; }
       }
 
       if (crates && p.dead) continue;
@@ -85,11 +91,35 @@ export class CombatSystem {
   }
 }
 
-export function updateProjectiles(projectiles, map, dt, pool) {
+export function updateProjectiles(projectiles, map, dt, pool, enemies) {
   let writeIdx = 0;
   for (let i = 0; i < projectiles.length; i++) {
     const p = projectiles[i];
     if (!p.dead) {
+      if (p.homing > 0 && p.owner === 'player' && enemies) {
+        let nearest = null;
+        let nearDist = 300;
+        for (const e of enemies) {
+          if (e.dead) continue;
+          const dx = (e.x + e.w / 2) - (p.x + p.w / 2);
+          const dy = (e.y + e.h / 2) - (p.y + p.h / 2);
+          const d = Math.sqrt(dx * dx + dy * dy);
+          if (d < nearDist) { nearDist = d; nearest = e; }
+        }
+        if (nearest) {
+          const targetX = nearest.x + nearest.w / 2;
+          const targetY = nearest.y + nearest.h / 2;
+          const dx = targetX - (p.x + p.w / 2);
+          const dy = targetY - (p.y + p.h / 2);
+          const d = Math.sqrt(dx * dx + dy * dy);
+          if (d > 1) {
+            const speed = Math.sqrt(p.vx * p.vx + p.vy * p.vy) || 200;
+            const steer = 0.15;
+            p.vx += (dx / d * speed - p.vx) * steer;
+            p.vy += (dy / d * speed - p.vy) * steer;
+          }
+        }
+      }
       p.x += p.vx * dt;
       p.y += p.vy * dt;
       if (p.gravity) p.vy += p.gravity * dt;

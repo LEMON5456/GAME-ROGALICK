@@ -44,6 +44,50 @@ export const UPGRADES = [
       run.timerBonus = (run.timerBonus || 0) + 20;
     },
   },
+  {
+    id: 'multiShot',
+    name: 'Дробовик',
+    maxLevel: 3,
+    baseCost: { iron: 10, crystal: 5 },
+    costScale: { iron: 1.5, crystal: 1.4 },
+    effectText: '+1 снаряд за выстрел (веер)',
+    apply(run) {
+      run.multiShot = (run.multiShot || 1) + 1;
+    },
+  },
+  {
+    id: 'fireRate',
+    name: 'Скорострельность',
+    maxLevel: 4,
+    baseCost: { iron: 8, crystal: 4 },
+    costScale: { iron: 1.5, crystal: 1.4 },
+    effectText: '-12% к перезарядке за уровень',
+    apply(run) {
+      run.fireRateMult = (run.fireRateMult || 1) * 0.88;
+    },
+  },
+  {
+    id: 'homing',
+    name: 'Самонаведение',
+    maxLevel: 2,
+    baseCost: { iron: 12, crystal: 8 },
+    costScale: { iron: 1.5, crystal: 1.5 },
+    effectText: 'Снаряды следуют за врагами',
+    apply(run) {
+      run.homing = (run.homing || 0) + 1;
+    },
+  },
+  {
+    id: 'jump',
+    name: 'Реактивный ранец',
+    maxLevel: 3,
+    baseCost: { iron: 6, crystal: 6 },
+    costScale: { iron: 1.5, crystal: 1.5 },
+    effectText: '+15% к высоте прыжка за уровень',
+    apply(run) {
+      run.jumpMult = (run.jumpMult || 1) * 1.15;
+    },
+  },
 ];
 
 export function getUpgradeLevel(run, id) {
@@ -98,6 +142,14 @@ export function getUpgradeSummary(run, upgrade) {
       return `HP ${run.maxHp} (ур. ${level}/${upgrade.maxLevel})`;
     case 'stabilizer':
       return `+${run.timerBonus || 0} сек (ур. ${level}/${upgrade.maxLevel})`;
+    case 'multiShot':
+      return `${run.multiShot || 1} снарядов за выстрел (ур. ${level}/${upgrade.maxLevel})`;
+    case 'fireRate':
+      return `Перезарядка ×${(run.fireRateMult || 1).toFixed(2)} (ур. ${level}/${upgrade.maxLevel})`;
+    case 'homing':
+      return `Самонаведение ур. ${level}/${upgrade.maxLevel}`;
+    case 'jump':
+      return `Прыжок ×${(run.jumpMult || 1).toFixed(2)} (ур. ${level}/${upgrade.maxLevel})`;
     default:
       return `ур. ${level}/${upgrade.maxLevel}`;
   }

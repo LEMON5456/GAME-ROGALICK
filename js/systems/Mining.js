@@ -86,6 +86,7 @@ export class MiningSystem {
     for (const t of this.targets) {
       if (t.progress >= 1) {
         map.set(t.tx, t.ty, TILE.STONE);
+        audio.sfxMiningTick();
         const result = { type: t.type, amount: 1 };
         this.targets = this.targets.filter(tt => tt !== t);
         if (this.targets.length === 0) this.active = false;

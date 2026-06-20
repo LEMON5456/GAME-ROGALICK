@@ -1,17 +1,8 @@
-import { sprites, SPRITES } from '../core/Sprites.js';
-
 const PICKUP_COLORS = {
   health: '#44dd66',
   shield: '#4488ff',
   speed: '#ffcc00',
   oreDrop: '#ddaa44',
-};
-
-const PICKUP_ICONS = {
-  health: 'health',
-  shield: 'shield',
-  speed: 'speed',
-  oreDrop: 'oreDrop',
 };
 
 export class Pickup {

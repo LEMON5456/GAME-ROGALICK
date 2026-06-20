@@ -1,5 +1,6 @@
 import { Enemy } from '../entities/Enemy.js';
 import { Flyer } from '../entities/Flyer.js';
+import { applyElite } from './Spawn.js';
 import { audio } from '../core/Audio.js';
 
 export class WaveManager {
@@ -37,6 +38,7 @@ export class WaveManager {
       this.waveActive = true;
       this._lastWarningTime = nextWave.delay;
       this._nextIndex++;
+      audio.sfxWave();
 
       for (const group of nextWave.enemies) {
         for (let i = 0; i < group.count; i++) {
@@ -45,25 +47,11 @@ export class WaveManager {
           const y = 9 * 32 + Math.random() * 60;
           if (group.type === 'flyer') {
             const flyer = new Flyer(x, y);
-            if (Math.random() < 0.15) {
-              flyer.elite = true;
-              flyer.maxHp = flyer.hp;
-              flyer.hp = Math.round(flyer.hp * 2);
-              flyer.damage = Math.round(flyer.damage * 1.5);
-              flyer.etherDrop = (flyer.etherDrop || 0) + 1;
-              audio.sfxEliteSpawn();
-            }
+            applyElite(flyer);
             if (this._spawnFn) this._spawnFn(flyer);
           } else {
             const enemy = new Enemy(group.type, x, y, fromRight ? -1 : 1);
-            if (Math.random() < 0.15) {
-              enemy.elite = true;
-              enemy.maxHp = enemy.hp;
-              enemy.hp = Math.round(enemy.hp * 2);
-              enemy.damage = Math.round(enemy.damage * 1.5);
-              enemy.etherDrop = (enemy.etherDrop || 0) + 1;
-              audio.sfxEliteSpawn();
-            }
+            applyElite(enemy);
             if (this._spawnFn) this._spawnFn(enemy);
           }
         }

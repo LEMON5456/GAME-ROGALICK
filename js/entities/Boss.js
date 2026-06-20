@@ -3,7 +3,7 @@ import { COLORS, COMBAT } from '../constants.js';
 import { moveWithCollisions, center } from '../world/Physics.js';
 import { Enemy } from './Enemy.js';
 import { PHYSICS } from '../constants.js';
-import { sprites, SPRITES } from '../core/Sprites.js';
+import { sprites } from '../core/Sprites.js';
 import { Animation, getWalkFrames } from '../core/Animations.js';
 
 export class Boss {

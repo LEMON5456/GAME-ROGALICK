@@ -3,6 +3,9 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#0d1025">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='6' fill='%230d1025'/><text x='16' y='24' font-size='22' text-anchor='middle' fill='%237af'>⚔</text></svg>">
+  <link rel="manifest" href="manifest.json">
   <title>Mouldog MVP — Рогалик</title>
   <link rel="stylesheet" href="css/style.css">
   <style>
@@ -60,6 +63,8 @@
         <p class="subtitle">Запечатай разлом. Добывай руду. Спаси галактику.</p>
         <p class="credit">Ассеты: Kenney.nl</p>
         <button id="btn-start">Начать забег</button>
+        <button id="btn-daily" class="btn-secondary" style="margin-top:8px;">Ежедневный вызов</button>
+        <p id="daily-label" style="font-size:9px;color:#aaa;margin-top:4px;"></p>
         <button id="btn-meta" class="btn-secondary" style="margin-top:8px;">Модификации</button>
         <div class="volume-row" style="margin-top:12px;">
           <label>Музыка: <input type="range" id="volume-slider" min="0" max="100" value="30"></label>
@@ -74,6 +79,10 @@
         <h2 id="hub-sector">Корабль — Сектор 1</h2>
         <p id="hub-message">Готов к высадке на планету?</p>
         <p id="hub-ore">Руда: Fe: 0 | Cr: 0</p>
+        <div id="perk-selection" style="display:none;margin-bottom:8px;">
+          <p style="color:#ffd700;font-size:11px;margin-bottom:6px;">ВЫБЕРИТЕ ПЕРК:</p>
+          <div id="perk-list" style="display:flex;gap:6px;justify-content:center;flex-wrap:wrap;"></div>
+        </div>
         <button id="btn-deploy">Высадиться</button>
       </div>
     </div>

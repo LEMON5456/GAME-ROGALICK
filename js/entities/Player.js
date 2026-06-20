@@ -9,6 +9,8 @@ const FRAME_H = 100;
 const FRAME_STEP = 100;
 const FRAMES_IDLE = [0, 100, 200, 300, 400, 500];
 const FRAMES_WALK = [0, 100, 200, 300, 400, 500, 600, 700];
+const FRAMES_ATTACK = [0, 100, 200, 300, 400, 500];
+const FRAMES_HURT = [0, 100, 200, 300];
 
 const CROP_X = 36;
 const CROP_Y = 31;
@@ -16,9 +18,14 @@ const CROP_W = 40;
 const CROP_H = 29;
 const SPRITE_SCALE = 2.8;
 
+const ATTACK_DURATION = 0.25;
+const HURT_DURATION = 0.3;
+
 const SHEETS = {
   idle: 'assets/sprites/soldier/Soldier-Idle.png',
   run: 'assets/sprites/soldier/Soldier-Walk.png',
+  attack: 'assets/sprites/soldier/Soldier-Attack01.png',
+  hurt: 'assets/sprites/soldier/Soldier-Hurt.png',
 };
 
 function loadImage(src) {
@@ -35,7 +42,11 @@ export class Player {
     this.reset();
     this.walkAnim = new Animation(FRAMES_WALK, 0.1);
     this.idleAnim = new Animation(FRAMES_IDLE, 0.15);
+    this.attackAnim = new Animation(FRAMES_ATTACK, 0.04);
+    this.hurtAnim = new Animation(FRAMES_HURT, 0.07);
     this.currentAnim = this.idleAnim;
+    this._attackTimer = 0;
+    this._hurtTimer = 0;
     Object.keys(SHEETS).forEach(k => { this._sheets[k] = loadImage(SHEETS[k]); });
   }
 
@@ -58,7 +69,14 @@ export class Player {
     this.ultimateCharge = 0;
     this.ultimateActive = 0;
     this.miningActive = false;
+    this._attackTimer = 0;
+    this._hurtTimer = 0;
     this._footstepTimer = 0;
+    this.fireRateMult = 1;
+    this.jumpMult = 1;
+    this.multiShot = 1;
+    this.speedMult = 1;
+    this.defense = 0;
   }
 
   spawn(x, y, run) {
@@ -69,6 +87,11 @@ export class Player {
     this.hp = run.hp;
     this.maxHp = run.maxHp;
     this.invincible = 0;
+    this.fireRateMult = run.fireRateMult || 1;
+    this.jumpMult = run.jumpMult || 1;
+    this.multiShot = (run.multiShot || 1);
+    this.speedMult = run.speedMult || 1;
+    this.defense = run.defense || 0;
   }
 
   update(input, map, dt, run, biome) {
@@ -90,7 +113,7 @@ export class Player {
       this.regenTimer = 0;
     }
 
-    const speedMult = this.speedBoost > 0 ? 1.5 : 1;
+    const speedMult = (this.speedBoost > 0 ? 1.5 : 1) * this.speedMult;
     const friction = biome === 'ice' ? 0.85 : 1;
     let moving = false;
     if (input.left()) {
@@ -109,7 +132,7 @@ export class Player {
     }
 
     if (input.jump() && canJump) {
-      this.vy = PHYSICS.PLAYER_JUMP;
+      this.vy = PHYSICS.PLAYER_JUMP * this.jumpMult;
       this.grounded = false;
     }
 
@@ -117,14 +140,29 @@ export class Player {
     moveWithCollisions(this, map, dt);
     if (isOnGround(this, map)) this.grounded = true;
 
-    this.currentAnim = moving && this.grounded ? this.walkAnim : this.idleAnim;
+    this._attackTimer = Math.max(0, this._attackTimer - dt);
+    this._hurtTimer = Math.max(0, this._hurtTimer - dt);
+
+    if (this._hurtTimer > 0) {
+      this.currentAnim = this.hurtAnim;
+    } else if (this._attackTimer > 0) {
+      this.currentAnim = this.attackAnim;
+    } else {
+      this.currentAnim = moving && this.grounded ? this.walkAnim : this.idleAnim;
+    }
     this.currentAnim.update(dt);
 
-    if (moving && this.grounded && biome === 'space') {
+    if (moving && this.grounded) {
       this._footstepTimer -= dt;
       if (this._footstepTimer <= 0) {
         this._footstepTimer = 0.35;
-        audio.sfxWalk();
+        if (biome === 'ice') {
+          audio.sfxWalkIce();
+        } else if (biome === 'lava') {
+          audio.sfxWalkGround();
+        } else {
+          audio.sfxWalk();
+        }
       }
     } else {
       this._footstepTimer = 0;
@@ -144,7 +182,11 @@ export class Player {
 
   tryFire(spawn, camera) {
     if (this.fireCooldown > 0) return null;
-    this.fireCooldown = this.ultimateActive > 0 ? COMBAT.PLAYER_FIRE_RATE * 0.4 : COMBAT.PLAYER_FIRE_RATE;
+    const base = this.ultimateActive > 0 ? COMBAT.PLAYER_FIRE_RATE * 0.4 : COMBAT.PLAYER_FIRE_RATE;
+    const multiPenalty = 1 + (this.multiShot - 1) * 0.5;
+    this.fireCooldown = base * this.fireRateMult * multiPenalty;
+    this._attackTimer = ATTACK_DURATION;
+    this.attackAnim.reset();
     const cx = this.x + this.w / 2;
     const cy = this.y + this.h / 2;
     spawn(cx, cy, this.facing, COMBAT.PROJECTILE_SPEED, 'player');
@@ -153,15 +195,19 @@ export class Player {
 
   takeDamage(amount) {
     if (this.invincible > 0) return false;
+    this._hurtTimer = HURT_DURATION;
+    this.hurtAnim.reset();
     if (this.shield > 0) {
       this.shield = 0;
       this.invincible = COMBAT.INVINCIBLE_TIME * 0.5;
       this.justHurt = true;
       this.lastHurtTime = 0;
       this.regenTimer = 0;
+      audio.sfxShieldBreak();
       return false;
     }
-    this.hp -= amount;
+    const def = this.defense || 0;
+    this.hp -= Math.round(amount * (1 - def));
     this.invincible = COMBAT.INVINCIBLE_TIME;
     this.justHurt = true;
     this.lastHurtTime = 0;
@@ -175,8 +221,10 @@ export class Player {
   }
 
   _drawSprite(ctx, time) {
-    const isMoving = this.currentAnim === this.walkAnim;
-    const sheetKey = isMoving ? 'run' : 'idle';
+    let sheetKey;
+    if (this._hurtTimer > 0) sheetKey = 'hurt';
+    else if (this._attackTimer > 0) sheetKey = 'attack';
+    else sheetKey = this.currentAnim === this.walkAnim ? 'run' : 'idle';
     const img = this._sheets[sheetKey];
     if (!img || !img.complete || img.naturalWidth === 0) return false;
 
@@ -229,13 +277,13 @@ export class Player {
     }
 
     if (this.ultimateActive > 0 && fxSheets.isReady()) {
-      const frame = Math.floor(time * 15) % fxSheets.get('brightFire').totalFrames;
+      const frame = Math.floor(time * 15) % (fxSheets.get('brightFire')?.totalFrames ?? 1);
       fxSheets.drawFrame(ctx, 'brightFire', frame, this.x - 12, this.y - 12, this.w + 24, this.h + 24);
     }
 
     if (this.shield > 0) {
       if (fxSheets.isReady()) {
-        const frame = Math.floor(time * 10) % fxSheets.get('protection').totalFrames;
+        const frame = Math.floor(time * 10) % (fxSheets.get('protection')?.totalFrames ?? 1);
         fxSheets.drawFrame(ctx, 'protection', frame, this.x - 8, this.y - 8, this.w + 16, this.h + 16);
       }
       ctx.strokeStyle = `rgba(68, 136, 255, ${0.3 + Math.sin(time * 5) * 0.2})`;

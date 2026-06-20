@@ -1,5 +1,7 @@
 const PATHS = {
   space: 'assets/backgrounds/bg_space.jpg',
+  sector1: 'assets/backgrounds/bg_sector1.jpg',
+  ice: 'assets/backgrounds/bg_ice.png',
 };
 
 export class BackgroundImage {
@@ -16,6 +18,22 @@ export class BackgroundImage {
     img.onload = () => {
       this._images[biome] = img;
       this._loaded[biome] = true;
+    };
+    img.onerror = () => {
+      console.error('BackgroundImage: failed to load', path);
+    };
+    img.src = path;
+  }
+
+  replace(key, path) {
+    this._loaded[key] = false;
+    const img = new Image();
+    img.onload = () => {
+      this._images[key] = img;
+      this._loaded[key] = true;
+    };
+    img.onerror = () => {
+      console.error('BackgroundImage: failed to replace', path);
     };
     img.src = path;
   }

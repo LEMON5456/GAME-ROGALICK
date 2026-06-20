@@ -5,6 +5,7 @@ import { Player } from '../entities/Player.js';
 import { generatePlanet, generateBossArena } from '../world/PlanetGen.js';
 import { createBoss } from '../entities/Boss.js';
 import { createLavaBoss } from '../entities/LavaBoss.js';
+import { createIceBoss } from '../entities/IceBoss.js';
 import { MiningSystem, checkEvacuation, checkHazardDamage } from '../systems/Mining.js';
 import { CombatSystem, updateProjectiles } from '../systems/Combat.js';
 import { setupPlanetEnemies } from '../systems/Spawn.js';
@@ -14,12 +15,12 @@ import { ShopUI } from '../ui/ShopUI.js';
 import { MenuUI } from '../ui/MenuUI.js';
 import { MetaShopUI } from '../ui/MetaShopUI.js';
 import { PauseUI } from '../ui/PauseUI.js';
-import { BOSS_PLANET, LAVA_BOSS_PLANET, getPlanetsForSector, getSectorInfo } from '../data/planets.js';
+import { BOSS_PLANET, ICE_BOSS_PLANET, LAVA_BOSS_PLANET, getPlanetsForSector, getSectorInfo } from '../data/planets.js';
 import { COLORS, PLANET_TIMER, TILE, TILE_SIZE, TUNNEL } from '../constants.js';
 import { placeEntitySafely, isOnGround, aabbOverlap } from '../world/Physics.js';
 import { SaveManager } from './SaveManager.js';
 import { audio } from './Audio.js';
-import { iceAssets } from './IceAssets.js';
+import { iceTiles } from './IceTiles.js';
 import { Lighting } from './Lighting.js';
 import { getBiome } from '../data/biomes.js';
 import { renderProjectile } from '../entities/Projectile.js';
@@ -46,7 +47,7 @@ function createRunState() {
   return {
     oreBank: { iron: 0, crystal: 0 },
     sessionOre: { iron: 0, crystal: 0 },
-    upgradeLevels: { blaster: 0, drill: 0, suit: 0, stabilizer: 0 },
+    upgradeLevels: { blaster: 0, drill: 0, suit: 0, stabilizer: 0, multiShot: 0, fireRate: 0, homing: 0, jump: 0 },
     damageMult: 1,
     miningSpeedMult: 1,
     timerBonus: 0,
@@ -57,8 +58,25 @@ function createRunState() {
     sector: 'sector1',
     shopDiscount: 0,
     kills: 0,
+    multiShot: 1,
+    fireRateMult: 1,
+    homing: 0,
+    jumpMult: 1,
     multiMineCount: 1,
     endless: false,
+    perkChosen: false,
+    vampirism: 0,
+    oreBonus: 0,
+    orePenalty: 0,
+    etherMult: 1,
+    speedMult: 1,
+    defense: 0,
+    etherPerPlanet: 0,
+    timerPenalty: 1,
+    enemySpeedMult: 1,
+    enemyHpMult: 1,
+    darknessMult: 1,
+    dailyMutator: null,
   };
 }
 
@@ -109,17 +127,19 @@ export class Game {
     this._prevMapPressed = false;
     this._fadeAlpha = 0;
     this._fadeDir = 0;
+    this._pendingFadeCallback = null;
     this.floatingTexts = [];
     this.events = [];
     this.bgImage = new BackgroundImage();
 
     this.menuUI = new MenuUI({
       onStart: () => this.startRun(),
+      onDaily: (mutator) => this.startRun(mutator),
       onDeploy: () => this.deploy(),
       onRetry: () => this.startRun(),
-      onSector2: () => this.startSector2(),
-      onSector3: () => this.startSector3(),
-      onEndless: () => this.startEndless(),
+      onSector2: () => this.startSector('sector2'),
+      onSector3: () => this.startSector('sector3'),
+      onEndless: () => this.startSector('endless'),
     });
 
     this.shopUI = new ShopUI(() => this.afterShop());
@@ -181,13 +201,23 @@ export class Game {
   }
 
   fadeTransition(callback) {
-    if (this._fadeDir !== 0) return;
+    if (this._fadeDir !== 0) {
+      this._pendingFadeCallback = callback;
+      return;
+    }
     this._fadeDir = 1;
     this._fadeCallback = callback;
   }
 
   updateFade(dt) {
-    if (this._fadeDir === 0) return;
+    if (this._fadeDir === 0) {
+      if (this._pendingFadeCallback) {
+        const cb = this._pendingFadeCallback;
+        this._pendingFadeCallback = null;
+        this.fadeTransition(cb);
+      }
+      return;
+    }
     const speed = 3;
     this._fadeAlpha += this._fadeDir * speed * dt;
     if (this._fadeAlpha >= 1) {
@@ -203,11 +233,15 @@ export class Game {
     }
   }
 
-  startRun() {
+  startRun(mutator) {
     audio.init();
     audio.ensureResumed();
     this.meta = SaveManager.load();
     this.run = createRunState();
+    if (mutator) {
+      this.run.dailyMutator = mutator;
+      mutator.apply(this.run);
+    }
     SaveManager.applyMetaUpgrades(this.run, this.meta);
     this.player.reset();
     this.run.hp = this.run.maxHp;
@@ -223,11 +257,16 @@ export class Game {
     this.snowParticles = [];
     this.events = [];
     audio.setBiome(this.biome);
-    this.bgImage.load(this.biome);
+
+    const img = new Image();
+    img.onload = () => { this.bgImage._images['space'] = img; this.bgImage._loaded['space'] = true; };
+    img.onerror = () => { console.error('sector1 bg FAILED'); };
+    img.src = 'assets/backgrounds/bg_sector1.jpg';
+
     audio.startMusic(this.biome);
   }
 
-  spawnProjectile(cx, cy, dirX, speed, owner, vy = 0) {
+  spawnProjectile(cx, cy, dirX, speed, owner, vy = 0, homing = 0) {
     let p = this._projectilePool.pop();
     if (!p) p = { w: 10, h: 6, dead: true };
     p.x = cx - p.w / 2;
@@ -238,13 +277,18 @@ export class Game {
     p.biome = this.biome;
     p.dead = false;
     p.gravity = owner === 'boss' ? 400 : 0;
+    p.homing = homing;
     this.projectiles.push(p);
+    if (this.projectiles.length > 80) {
+      this.projectiles[0].dead = true;
+    }
     return p;
   }
 
   deploy() {
     this.menuUI.hideAll();
     this.canvas.focus();
+    audio.sfxDeploy();
     this.fadeTransition(() => {
       if (this.run.phase === 'boss') {
         this.loadBoss();
@@ -266,12 +310,13 @@ export class Game {
     this.biome = this.sectorInfo ? this.sectorInfo.biome : 'space';
     this.map = generatePlanet(this.planetConfig, this.biome);
     this.camera.setWorldSize(this.map.width, this.map.height);
+    this.player.spawn(this.map.spawnX, this.map.spawnY, this.run);
     placeEntitySafely(this.player, this.map, this.map.spawnX, this.map.spawnY);
     this.player.hp = this.run.hp;
     this.player.maxHp = this.run.maxHp;
     this.player.grounded = isOnGround(this.player, this.map);
     this.camera.snapTo(this.player.x + this.player.w / 2, this.player.y + this.player.h / 2);
-    this.enemies = setupPlanetEnemies(this.planetConfig, this.map);
+    this.enemies = setupPlanetEnemies(this.planetConfig, this.map, this.run);
     this.pickups = (this.map.pickups || []).map(p => new Pickup(p.x, p.y, p.type));
     this.crates = (this.map.crates || []).map(c => new Crate(c.x, c.y));
     this._clearPool();
@@ -279,7 +324,8 @@ export class Game {
     this.waveManager.reset(this.planetConfig.waves || [], (e) => this.enemies.push(e));
     this.mining.reset();
     const planetTimeBonus = this.planetConfig.timeBonus || 0;
-    this.planetTimer.start(PLANET_TIMER + this.run.timerBonus + planetTimeBonus);
+    const timerPenalty = this.run.timerPenalty || 1;
+    this.planetTimer.start((PLANET_TIMER + this.run.timerBonus + planetTimeBonus) * timerPenalty);
     this.run.sessionOre = { iron: 0, crystal: 0 };
     this.state = STATE.PLANET;
     this.hud.show();
@@ -290,7 +336,13 @@ export class Game {
       this.snowParticles = spawnEmbers(this.canvas.width, this.canvas.height);
     }
     audio.setBiome(this.biome);
-    this.bgImage.load(this.biome);
+    if (this.run && this.run.sector === 'sector1') {
+      const img = new Image();
+      img.onload = () => { this.bgImage._images['space'] = img; this.bgImage._loaded['space'] = true; };
+      img.src = 'assets/backgrounds/bg_sector1.jpg';
+    } else {
+      this.bgImage.load(this.biome);
+    }
     this.events = generateEvents(this.planetConfig, this.map);
     for (const ev of this.events) {
       const enemy = initEventEnemy(ev);
@@ -299,10 +351,12 @@ export class Game {
   }
 
   loadBoss() {
+    const isIce = this.biome === 'ice';
     const isLava = this.biome === 'lava';
-    this.planetConfig = isLava ? LAVA_BOSS_PLANET : BOSS_PLANET;
+    this.planetConfig = isIce ? ICE_BOSS_PLANET : isLava ? LAVA_BOSS_PLANET : BOSS_PLANET;
     this.map = generateBossArena(this.biome);
     this.camera.setWorldSize(this.map.width, this.map.height);
+    this.player.spawn(this.map.spawnX, this.map.spawnY, this.run);
     placeEntitySafely(this.player, this.map, this.map.spawnX, this.map.spawnY);
     this.player.hp = this.run.hp;
     this.player.maxHp = this.run.maxHp;
@@ -310,7 +364,8 @@ export class Game {
     this.camera.snapTo(this.player.x + this.player.w / 2, this.player.y + this.player.h / 2);
     this.enemies = [];
     this._clearPool();
-    this.boss = isLava ? createLavaBoss(this.map) : createBoss(this.map);
+    if (isIce) this.boss = createIceBoss(this.map);
+    else this.boss = isLava ? createLavaBoss(this.map) : createBoss(this.map);
     this.mining.reset();
     this.planetTimer.stop();
     this.run.sessionOre = { iron: 0, crystal: 0 };
@@ -328,7 +383,8 @@ export class Game {
     this.run.oreBank.iron += this.run.sessionOre.iron;
     this.run.oreBank.crystal += this.run.sessionOre.crystal;
 
-    const etherReward = 5;
+    const etherMult = this.run.etherMult || 1;
+    const etherReward = Math.round((this.run.etherPerPlanet || 5) * etherMult);
     SaveManager.awardEtherSerum(this.meta, etherReward);
     SaveManager.recordRunEnd(this.meta, 'evacuate', this.run.sessionOre.iron + this.run.sessionOre.crystal);
 
@@ -375,7 +431,7 @@ export class Game {
   afterShop() {
     this.fadeTransition(() => {
       if (this.run.phase === 'boss') {
-        const bossName = this.biome === 'lava' ? LAVA_BOSS_PLANET.name : BOSS_PLANET.name;
+        const bossName = this.biome === 'ice' ? ICE_BOSS_PLANET.name : this.biome === 'lava' ? LAVA_BOSS_PLANET.name : BOSS_PLANET.name;
         this.hubMessage = 'Финальная миссия: ' + bossName;
         this.state = STATE.HUB;
         this.menuUI.showHub(this.run, this.hubMessage, this.sectorInfo.name, this.sectorInfo.biome, 'black_hole');
@@ -412,86 +468,48 @@ export class Game {
     this.fadeTransition(() => {
       const etherReward = 50;
       const sector = this.run ? this.run.sector : 'sector1';
+      let newUnlock = '';
       if (sector === 'sector1' && !this.meta.stats.sector2Unlocked) {
         this.meta.stats.sector2Unlocked = true;
+        newUnlock = 'sector2';
       }
       if (sector === 'sector2' && !this.meta.stats.sector3Unlocked) {
         this.meta.stats.sector3Unlocked = true;
+        newUnlock = 'sector3';
       }
       if (sector === 'sector3' && !this.meta.stats.endlessUnlocked) {
         this.meta.stats.endlessUnlocked = true;
+        newUnlock = 'endless';
       }
       SaveManager.awardEtherSerum(this.meta, etherReward);
       SaveManager.recordRunEnd(this.meta, 'win', this.run.oreBank.iron + this.run.oreBank.crystal);
       const sector2Unlocked = this.meta.stats.sector2Unlocked;
       const sector3Unlocked = this.meta.stats.sector3Unlocked;
       const endlessUnlocked = this.meta.stats.endlessUnlocked;
-      this.menuUI.showWin(sector2Unlocked, sector3Unlocked, endlessUnlocked);
+      this.menuUI.showWin(sector, sector2Unlocked, sector3Unlocked, endlessUnlocked, newUnlock);
       audio.sfxWin();
       audio.startMusic(this.biome);
     });
   }
 
-  startSector2() {
+  startSector(sectorId) {
+    const endless = sectorId === 'endless';
     this.run = createRunState();
     SaveManager.applyMetaUpgrades(this.run, this.meta);
     this.player.reset();
     this.run.hp = this.run.maxHp;
-    this.run.sector = 'sector2';
-    this.sectorInfo = getSectorInfo('sector2');
+    this.run.sector = sectorId;
+    this.sectorInfo = getSectorInfo(endless ? 'sector1' : sectorId);
     this.biome = this.sectorInfo.biome;
     this.run.planetIndex = 0;
     this.run.phase = 'planets';
+    this.run.endless = endless;
     this.state = STATE.HUB;
-    this.hubMessage = 'Первая высадка: ' + this.sectorInfo.planets[0].name;
-    this.menuUI.showHub(this.run, this.hubMessage, this.sectorInfo.name, this.sectorInfo.biome);
-    this.hud.hide();
-    this.particles = [];
-    this.pickups = [];
-    this.snowParticles = [];
-    this.events = [];
-    audio.setBiome(this.biome);
-    this.bgImage.load(this.biome);
-    audio.startMusic(this.biome);
-  }
-
-  startSector3() {
-    this.run = createRunState();
-    SaveManager.applyMetaUpgrades(this.run, this.meta);
-    this.player.reset();
-    this.run.hp = this.run.maxHp;
-    this.run.sector = 'sector3';
-    this.sectorInfo = getSectorInfo('sector3');
-    this.biome = this.sectorInfo.biome;
-    this.run.planetIndex = 0;
-    this.run.phase = 'planets';
-    this.state = STATE.HUB;
-    this.hubMessage = 'Первая высадка: ' + this.sectorInfo.planets[0].name;
-    this.menuUI.showHub(this.run, this.hubMessage, this.sectorInfo.name, this.sectorInfo.biome);
-    this.hud.hide();
-    this.particles = [];
-    this.pickups = [];
-    this.snowParticles = [];
-    this.events = [];
-    audio.setBiome(this.biome);
-    this.bgImage.load(this.biome);
-    audio.startMusic(this.biome);
-  }
-
-  startEndless() {
-    this.run = createRunState();
-    SaveManager.applyMetaUpgrades(this.run, this.meta);
-    this.player.reset();
-    this.run.hp = this.run.maxHp;
-    this.run.sector = 'endless';
-    this.sectorInfo = getSectorInfo('sector1');
-    this.biome = this.sectorInfo.biome;
-    this.run.planetIndex = 0;
-    this.run.phase = 'planets';
-    this.run.endless = true;
-    this.state = STATE.HUB;
-    this.hubMessage = 'Режим: Бесконечность — первая высадка';
-    this.menuUI.showHub(this.run, this.hubMessage, '∞ Бесконечность', 'space');
+    this.hubMessage = endless ? 'Режим: Бесконечность — первая высадка'
+      : 'Первая высадка: ' + this.sectorInfo.planets[0].name;
+    this.menuUI.showHub(this.run, this.hubMessage,
+      endless ? '∞ Бесконечность' : this.sectorInfo.name,
+      endless ? 'space' : this.sectorInfo.biome);
     this.hud.hide();
     this.particles = [];
     this.pickups = [];
@@ -572,12 +590,19 @@ export class Game {
 
     if (this.input.ultimatePressed() && this.player.useUltimate()) {
       spawnDeathParticles(this.player.x + this.player.w / 2, this.player.y, 24, 24, '#ff8800', this.particles);
+      audio.sfxUltimate();
     }
 
     if (this.input.fireHeld()) {
       const muzzle = this.player.tryFire((cx, cy, dirX, speed, owner) => {
-      this.spawnProjectile(cx, cy, dirX, speed, owner);
-    }, this.camera);
+        const count = this.run.multiShot || 1;
+        const spread = 0.06;
+        const homing = this.run.homing || 0;
+        for (let i = 0; i < count; i++) {
+          const angle = (i - (count - 1) / 2) * spread;
+          this.spawnProjectile(cx, cy, dirX, speed, owner, angle * speed, homing);
+        }
+      }, this.camera);
       if (muzzle) {
         spawnMuzzleFlash(muzzle.x, muzzle.y, this.particles);
         audio.sfxShoot();
@@ -605,7 +630,8 @@ export class Game {
       this.player.miningActive = this.input.action() && this.mining.findNearbyOres(this.player, this.map, 1).length > 0;
       const mined = this.mining.update(this.input, this.player, this.map, this.run, dt);
       if (mined) {
-        this.run.sessionOre[mined.type] += mined.amount;
+        const oreMult = this.run.orePenalty ? (1 - this.run.orePenalty) : 1 + (this.run.oreBonus || 0);
+        this.run.sessionOre[mined.type] += Math.round(mined.amount * oreMult);
         this.planetTimer.addTime(1);
         this.player.addUltimateCharge(5);
         const px = this.player.x + this.player.w / 2;
@@ -643,6 +669,7 @@ export class Game {
           this.onDeath();
           return;
         }
+        this.floatingTexts.push(new FloatingText(this.player.x + this.player.w / 2, this.player.y - 10, '-' + hazardDmg, '#ff6644', 1.2));
         audio.sfxHurt();
       }
     }
@@ -656,6 +683,31 @@ export class Game {
 
     for (const e of this.enemies) {
       e.update(dt, this.map, this.player, (...args) => this.spawnProjectile(...args));
+    }
+
+    for (const buf of this.enemies) {
+      if (buf.type === 'buffer' && !buf.dead) {
+        buf._buffCooldown -= dt;
+        if (buf._buffCooldown <= 0.5 && buf._buffCooldown >= 0 && buf._lastBuffTime !== buf._buffCooldown) {
+          buf._lastBuffTime = buf._buffCooldown;
+          for (const e2 of this.enemies) {
+            if (e2 === buf || e2.dead) continue;
+            const dx = e2.x - buf.x;
+            const dy = e2.y - buf.y;
+            if (Math.sqrt(dx * dx + dy * dy) < 200) {
+              e2._buffed = true;
+              e2._buffTimer = 0.5;
+            }
+          }
+        }
+        if (buf._buffCooldown <= 0) { buf._buffCooldown = 3; buf._lastBuffTime = 3; }
+      }
+    }
+    for (const e3 of this.enemies) {
+      if (e3._buffed && e3._buffTimer !== undefined) {
+        e3._buffTimer -= dt;
+        if (e3._buffTimer <= 0) { e3._buffed = false; e3._buffTimer = 0; }
+      }
     }
     for (const p of this.pickups) {
       p.update(dt);
@@ -691,7 +743,7 @@ export class Game {
       }
     }
 
-    updateProjectiles(this.projectiles, this.map, dt, this._projectilePool);
+    updateProjectiles(this.projectiles, this.map, dt, this._projectilePool, this.enemies);
 
     this.pickups = this.pickups.filter((p) => !p.dead);
     this.particles = this.particles.filter((p) => !p.dead);
@@ -704,6 +756,7 @@ export class Game {
     for (const s of this.snowParticles) s.update(dt, this.canvas.width, this.canvas.height);
 
     const result = this.combat.update(this.player, this.enemies, this.boss, this.projectiles, this.run, dt, this.crates, this.floatingTexts);
+    if (this.combat.screenShake > 0) this.camera.shake(3, this.combat.screenShake);
     if (result === 'death') {
       this.run.hp = 0;
       this.onDeath();
@@ -720,6 +773,9 @@ export class Game {
         spawnDeathParticles(e.x, e.y, e.w, e.h, e.elite ? '#ffd700' : (e.type === 'crawler' ? '#e04040' : '#a040e0'), this.particles);
         this.run.kills = (this.run.kills || 0) + 1;
         this.player.addUltimateCharge(8);
+        if (this.run.vampirism) {
+          this.player.hp = Math.min(this.player.hp + Math.round(15 * this.run.vampirism), this.player.maxHp);
+        }
         if (e.elite || Math.random() < 0.4) {
           const oreType = Math.random() < 0.6 ? 'iron' : 'crystal';
           this.run.sessionOre[oreType] += 1;
@@ -762,15 +818,17 @@ export class Game {
     const w = this.canvas.width;
     const h = this.canvas.height;
 
+    const bgKey = this.biome;
+
     const bc = getBiome(this.biome);
-    if (this.bgImage && this.bgImage.isReady(this.biome)) {
-      this.bgImage.render(ctx, this.biome, this.camera, w, h);
+    if (this.bgImage && this.bgImage.isReady(bgKey)) {
+      this.bgImage.render(ctx, bgKey, this.camera, w, h);
     }
     const grad = ctx.createLinearGradient(0, 0, 0, h);
     grad.addColorStop(0, bc.sky1);
     grad.addColorStop(1, bc.sky2);
     ctx.fillStyle = grad;
-    ctx.globalAlpha = this.bgImage && this.bgImage.isReady(this.biome) ? 0.5 : 1;
+    ctx.globalAlpha = this.biome === 'ice' ? 0.2 : (this.bgImage && this.bgImage.isReady(bgKey) ? 0.5 : 1);
     ctx.fillRect(0, 0, w, h);
     ctx.globalAlpha = 1;
 
@@ -778,14 +836,14 @@ export class Game {
 
     this.renderBackground(ctx, bc);
     this.camera.apply(ctx, dt);
-    this.map.render(ctx, this.camera);
+    this.map.render(ctx, this.camera, this.time);
     this.map.renderIceSprites(ctx, this.camera);
     this.map.renderMarkers(ctx, this.time);
     if (fxSheets.isReady()) {
       const ex = this.map.exitX;
       const ey = this.map.exitY;
       const portalH = (TUNNEL.CAVE_BOTTOM - TUNNEL.CAVE_TOP + 2) * TILE_SIZE;
-      const total = fxSheets.get('magicSpell').totalFrames;
+      const total = fxSheets.get('magicSpell')?.totalFrames ?? 1;
       const frame = Math.floor(this.time * 8) % total;
       const scale = portalH / 100;
       const sw = Math.round(100 * scale);
@@ -805,7 +863,9 @@ export class Game {
     for (const p of this.projectiles) renderProjectile(ctx, p);
     for (const p of this.particles) p.render(ctx);
     for (const imp of this._impacts) {
-      const idx = Math.floor((1 - imp.life / 0.25) * fxSheets.get('weaponHit').totalFrames);
+      const total = fxSheets.get('weaponHit')?.totalFrames;
+      if (total == null) continue;
+      const idx = Math.floor((1 - imp.life / 0.25) * total);
       const size = 24;
       fxSheets.drawFrame(ctx, 'weaponHit', idx, imp.x - size / 2, imp.y - size / 2, size, size);
     }
@@ -813,8 +873,9 @@ export class Game {
 
     this.camera.restore(ctx);
 
+    const darkMult = this.run ? (this.run.darknessMult || 1) : 1;
     this.lighting.clear();
-    this.lighting.add(this.player.x + this.player.w / 2, this.player.y + this.player.h / 2, 180, [255, 220, 150], 0.6);
+    this.lighting.add(this.player.x + this.player.w / 2, this.player.y + this.player.h / 2, 180 * darkMult, [255, 220, 150], 0.6 * darkMult);
     if (this.map) {
       const cx = Math.floor((this.camera.x + this.canvas.width / 2) / 32);
       const cy = Math.floor((this.camera.y + this.canvas.height / 2) / 32);
@@ -831,7 +892,7 @@ export class Game {
         }
       }
     }
-    if (this.biome === 'ice' && iceAssets.isReady()) {
+    if (this.biome === 'ice') {
       for (let i = 0; i < 6; i++) {
         const lx = Math.random() * this.canvas.width;
         const ly = this.camera.y + Math.random() * this.canvas.height;
@@ -971,14 +1032,11 @@ export class Game {
         }
       }
 
-      if (iceAssets.isReady()) {
+      if (iceTiles.isReady('entities')) {
         const hw = this.canvas.width / 2;
         const hh = this.canvas.height / 2;
-        const houseX = hw + Math.sin(this.time * 0.2 + 1) * 8;
-        const houseY = hh * 0.12 + Math.sin(this.time * 0.3) * 4;
-        iceAssets.draw(ctx, 'house', houseX - 80, houseY, 160, 96);
-        iceAssets.draw(ctx, 'platform_left', -parallax1 * 0.15 % 300 - 40, hh * 0.7, 180, 140);
-        iceAssets.draw(ctx, 'platform_right', w - 140 + parallax1 * 0.15 % 300, hh * 0.75, 160, 120);
+        iceTiles.drawDecor(ctx, 8, -parallax1 * 0.15 % 300 - 40, hh * 0.7, 32, 32);
+        iceTiles.drawDecor(ctx, 9, w - 140 + parallax1 * 0.15 % 300, hh * 0.75, 32, 32);
       }
     }
 

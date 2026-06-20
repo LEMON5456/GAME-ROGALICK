@@ -1,4 +1,6 @@
 import { planetIcons } from '../core/PlanetIcons.js';
+import { PERKS } from '../data/perks.js';
+import { getDailyChallenge } from '../data/challenges.js';
 
 export class MenuUI {
   constructor(callbacks) {
@@ -15,11 +17,31 @@ export class MenuUI {
     this.btnSector3 = document.getElementById('btn-sector3');
     this.btnEndless = document.getElementById('btn-endless');
 
+    this._deployCb = callbacks.onDeploy;
+    this._perkSelected = null;
+    this._runRef = null;
+
     this._retryCb = callbacks.onRetry;
     document.getElementById('btn-start').addEventListener('click', callbacks.onStart);
-    document.getElementById('btn-deploy').addEventListener('click', callbacks.onDeploy);
+    document.getElementById('btn-deploy').addEventListener('click', () => {
+      if (this._perkSelected && this._runRef) {
+        this._perkSelected.apply(this._runRef);
+      }
+      this._perkSelected = null;
+      this._deployCb();
+    });
     document.getElementById('btn-retry').addEventListener('click', callbacks.onRetry);
     document.getElementById('btn-win-retry').addEventListener('click', callbacks.onRetry);
+
+    const dailyBtn = document.getElementById('btn-daily');
+    if (dailyBtn) {
+      const mutator = getDailyChallenge();
+      const label = document.getElementById('daily-label');
+      if (label) label.textContent = 'Сегодня: ' + mutator.name + ' — ' + mutator.desc;
+      dailyBtn.addEventListener('click', () => {
+        callbacks.onDaily(mutator);
+      });
+    }
 
     if (this.btnSector2 && callbacks.onSector2) {
       this.btnSector2.addEventListener('click', callbacks.onSector2);
@@ -39,6 +61,7 @@ export class MenuUI {
 
   showHub(run, message, sectorName = 'Сектор 1', biome = 'space', planetOverride = null) {
     this.hideAll();
+    this._runRef = run;
     this.hubMessage.textContent = message;
     this.hubOre.textContent = `Руда: Fe: ${run.oreBank.iron} | Cr: ${run.oreBank.crystal}`;
     if (this.sectorLabel) {
@@ -54,7 +77,30 @@ export class MenuUI {
         planetIcons.draw(ctx, biome, 0, 0, 96);
       }
     }
+    this._showPerks(run, message);
     this.hub.classList.remove('hidden');
+  }
+
+  _showPerks(run, message) {
+    const container = document.getElementById('perk-selection');
+    const list = document.getElementById('perk-list');
+    if (!container || !list) return;
+    if (run.perkChosen) { container.style.display = 'none'; return; }
+    container.style.display = 'block';
+    list.innerHTML = '';
+    for (const perk of PERKS) {
+      const btn = document.createElement('button');
+      btn.textContent = perk.name;
+      btn.title = perk.desc;
+      btn.style.cssText = 'font-size:10px;padding:4px 8px;cursor:pointer;';
+      btn.addEventListener('click', () => {
+        this._perkSelected = perk;
+        run.perkChosen = true;
+        container.style.display = 'none';
+        run.perkBonusMessage = perk.name + ': ' + perk.desc;
+      });
+      list.appendChild(btn);
+    }
   }
 
   showGameOver(stats = {}) {
@@ -72,17 +118,21 @@ export class MenuUI {
     this.gameover.classList.remove('hidden');
   }
 
-  showWin(sector2Unlocked = false, sector3Unlocked = false, endlessUnlocked = false) {
+  showWin(sector, sector2Unlocked = false, sector3Unlocked = false, endlessUnlocked = false, newUnlock = '') {
     this.hideAll();
     if (this.winText) {
       let msg = 'Вы спасли сектор.';
-      if (sector3Unlocked) msg = 'Сектор 3 открыт для исследования!';
-      else if (sector2Unlocked) msg = 'Сектор 2 открыт для исследования!';
-      if (endlessUnlocked) msg = 'Режим «Бесконечность» разблокирован!';
+      if (newUnlock === 'endless') {
+        msg = 'Режим «Бесконечность» разблокирован!';
+      } else if (newUnlock === 'sector3') {
+        msg = 'Сектор 3 открыт для исследования!';
+      } else if (newUnlock === 'sector2') {
+        msg = 'Сектор 2 открыт для исследования!';
+      }
       this.winText.textContent = msg;
     }
     if (this.btnSector2) {
-      this.btnSector2.style.display = (!endlessUnlocked && sector2Unlocked && !sector3Unlocked) ? 'inline-block' : 'none';
+      this.btnSector2.style.display = sector2Unlocked ? 'inline-block' : 'none';
     }
     if (this.btnSector3) {
       this.btnSector3.style.display = sector3Unlocked ? 'inline-block' : 'none';
