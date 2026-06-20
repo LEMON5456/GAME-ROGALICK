@@ -94,7 +94,7 @@ export class BackgroundImage {
     ctx.moveTo(0, h);
     for (let x = -50; x <= w + 50; x += 20) {
       const rx = ((x - px * 0.05) % period + period) % period;
-      const my = h * 0.62 + Math.sin(rx / period * Math.PI * 4) * 55
+      const my = h * 0.28 + Math.sin(rx / period * Math.PI * 4) * 55
         + Math.sin(rx / period * Math.PI * 10) * 25 + Math.sin(rx / period * Math.PI * 20) * 10;
       ctx.lineTo(Math.max(0, Math.min(w, x)), Math.min(h, my));
     }
@@ -107,7 +107,7 @@ export class BackgroundImage {
     ctx.moveTo(0, h);
     for (let x = -50; x <= w + 50; x += 20) {
       const rx = ((x - px * 0.05) % period + period) % period;
-      const my = h * 0.62 + Math.sin(rx / period * Math.PI * 4) * 55
+      const my = h * 0.28 + Math.sin(rx / period * Math.PI * 4) * 55
         + Math.sin(rx / period * Math.PI * 10) * 25 + Math.sin(rx / period * Math.PI * 20) * 10;
       ctx.lineTo(Math.max(0, Math.min(w, x)), Math.min(h, my - 10));
     }
@@ -131,7 +131,7 @@ export class BackgroundImage {
     ctx.moveTo(0, h);
     for (let x = -50; x <= w + 50; x += 20) {
       const rx = ((x - px * 0.04) % period + period) % period;
-      const vy = h * 0.68 + Math.sin(rx / period * Math.PI * 3) * 55
+      const vy = h * 0.32 + Math.sin(rx / period * Math.PI * 3) * 55
         + Math.sin(rx / period * Math.PI * 8) * 22;
       ctx.lineTo(Math.max(0, Math.min(w, x)), Math.min(h, vy));
     }
@@ -143,7 +143,7 @@ export class BackgroundImage {
     const craterR = 20 + Math.sin(time * 0.8) * 4;
     ctx.fillStyle = `rgba(255, 120, 40, ${0.08 + 0.06 * Math.sin(time * 1.2)})`;
     ctx.beginPath();
-    ctx.arc(craterX, h * 0.68 + Math.sin(200 / period * Math.PI * 3) * 55
+    ctx.arc(craterX, h * 0.32 + Math.sin(200 / period * Math.PI * 3) * 55
       + Math.sin(200 / period * Math.PI * 8) * 22 - 8, craterR, 0, Math.PI * 2);
     ctx.fill();
 
