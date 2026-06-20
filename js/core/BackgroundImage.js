@@ -26,60 +26,62 @@ export class BackgroundImage {
     ctx.fillStyle = grad;
     ctx.fillRect(0, 0, w, h);
 
+    const worldW = 5000;
+    const cx = px;
+    const margin = 100;
+
     ctx.fillStyle = 'rgba(255, 255, 255, 0.15)';
-    for (let i = 0; i < 300; i++) {
-      const sx = ((i * 137 + 42) % 1000) / 1000;
-      const sy = ((i * 251 + 89) % 1000) / 1000;
+    for (let i = 0; i < 1800; i++) {
+      const wx = ((i * 137 + 42) % worldW);
+      if (wx < cx - margin || wx > cx + w + margin) continue;
+      const wy = ((i * 251 + 89) % 1000) / 1000 * h;
       const size = 0.5 + ((i * 73 + 17) % 3) * 0.4;
       const tw = Math.max(0, Math.sin(time * (1.5 + (i % 5) * 0.5) + i * 2.7));
-      const rx = ((sx * 1000 - px * 0.03) % w + w) % w;
-      const ry = sy * h % h;
-      ctx.fillRect(rx, ry, size, size);
+      ctx.fillRect(wx - cx, wy, size, size);
     }
     ctx.fillStyle = 'rgba(200, 220, 255, 0.35)';
-    for (let i = 0; i < 100; i++) {
-      const sx = ((i * 313 + 71) % 1000) / 1000;
-      const sy = ((i * 509 + 43) % 1000) / 1000;
+    for (let i = 0; i < 600; i++) {
+      const wx = ((i * 313 + 71) % worldW);
+      if (wx < cx - margin || wx > cx + w + margin) continue;
+      const wy = ((i * 509 + 43) % 1000) / 1000 * h;
       const size = 1 + ((i * 179 + 11) % 3);
       const tw = Math.max(0, Math.sin(time * (2 + (i % 3) * 0.7) + i * 3.1));
-      const rx = ((sx * 1000 - px * 0.05) % w + w) % w;
-      const ry = sy * h % h;
-      ctx.fillRect(rx, ry, size, size);
+      ctx.fillRect(wx - cx, wy, size, size);
     }
     ctx.fillStyle = 'rgba(180, 200, 255, 0.6)';
-    for (let i = 0; i < 30; i++) {
-      const sx = ((i * 577 + 19) % 1000) / 1000;
-      const sy = ((i * 823 + 67) % 1000) / 1000;
+    for (let i = 0; i < 200; i++) {
+      const wx = ((i * 577 + 19) % worldW);
+      if (wx < cx - margin || wx > cx + w + margin) continue;
+      const wy = ((i * 823 + 67) % 1000) / 1000 * h;
       const size = 1.5 + ((i * 281 + 53) % 3) * 0.5;
       const tw = Math.max(0, Math.sin(time * (2.5 + (i % 4) * 0.4) + i * 4.3));
-      const rx = ((sx * 1000 - px * 0.04) % w + w) % w;
-      const ry = sy * h % h;
-      ctx.fillRect(rx, ry, size, size);
+      ctx.fillRect(wx - cx, wy, size, size);
     }
 
     const nebula = [
-      { ox: 0.2, oy: 0.3, rw: 250, rh: 100, c: 'rgba(80, 40, 140, 0.06)' },
-      { ox: 0.6, oy: 0.5, rw: 200, rh: 80, c: 'rgba(40, 60, 140, 0.05)' },
-      { ox: 0.8, oy: 0.2, rw: 180, rh: 120, c: 'rgba(140, 40, 80, 0.04)' },
+      { wx: 500, wy: 0.3, rw: 250, rh: 100, c: 'rgba(80, 40, 140, 0.06)' },
+      { wx: 1800, wy: 0.5, rw: 200, rh: 80, c: 'rgba(40, 60, 140, 0.05)' },
+      { wx: 3000, wy: 0.2, rw: 180, rh: 120, c: 'rgba(140, 40, 80, 0.04)' },
+      { wx: 4000, wy: 0.55, rw: 220, rh: 90, c: 'rgba(60, 20, 120, 0.05)' },
     ];
     for (const n of nebula) {
-      const nx = (n.ox * w - px * 0.01 + Math.sin(time * 0.08 + n.ox) * 40) % w;
-      const ny = n.oy * h;
+      if (n.wx + n.rw < cx - margin || n.wx - n.rw > cx + w + margin) continue;
       ctx.fillStyle = n.c;
       ctx.beginPath();
-      ctx.ellipse(nx, ny, n.rw, n.rh, 0, 0, Math.PI * 2);
+      ctx.ellipse(n.wx - cx + Math.sin(time * 0.08 + n.wx * 0.001) * 40, n.wy * h, n.rw, n.rh, 0, 0, Math.PI * 2);
       ctx.fill();
     }
 
-    const plX = ((w * 0.5 - px * 0.015) % (w + 200) + w + 200) % (w + 200) - 100;
+    const planetWorldX = 2400;
+    const planetScreenX = planetWorldX - cx + Math.sin(time * 0.1) * 30;
     ctx.fillStyle = 'rgba(80, 60, 120, 0.25)';
     ctx.beginPath();
-    ctx.ellipse(plX, h * 0.22, 45, 32, 0.2, 0, Math.PI * 2);
+    ctx.ellipse(planetScreenX, h * 0.22, 45, 32, 0.2, 0, Math.PI * 2);
     ctx.fill();
     ctx.strokeStyle = `rgba(120, 100, 160, ${0.15 + 0.05 * Math.sin(time * 0.3)})`;
     ctx.lineWidth = 3;
     ctx.beginPath();
-    ctx.ellipse(plX, h * 0.22 + 3, 70, 14, 0.3, 0, Math.PI * 2);
+    ctx.ellipse(planetScreenX, h * 0.22 + 3, 70, 14, 0.3, 0, Math.PI * 2);
     ctx.stroke();
   }
 
