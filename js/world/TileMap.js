@@ -264,12 +264,16 @@ export class TileMap {
                 this._drawLavaEmber(ctx, x, y, time);
                 this._drawLavaVent(ctx, x, y, time);
               }
+              ctx.fillStyle = `rgba(255, 120, 40, ${0.015 + 0.012 * Math.sin(time * 2 + tx * 3 + ty * 2)})`;
+              ctx.fillRect(x, y, TILE_SIZE, TILE_SIZE);
             } else {
               ctx.fillStyle = (tx + ty) % 2 === 0 ? bc.stone : bc.stoneDark;
               ctx.fillRect(x, y, TILE_SIZE, TILE_SIZE);
             }
             break;
           case TILE.ORE_IRON:
+            ctx.fillStyle = `rgba(200, 120, 40, ${0.1 + 0.07 * Math.sin(time * 3 + tx * 5 + ty * 3)})`;
+            ctx.fillRect(x - 2, y - 2, TILE_SIZE + 4, TILE_SIZE + 4);
             ctx.fillStyle = bc.stoneDark;
             ctx.fillRect(x, y, TILE_SIZE, TILE_SIZE);
             if (isIce) {
@@ -284,6 +288,8 @@ export class TileMap {
             }
             break;
           case TILE.ORE_CRYSTAL:
+            ctx.fillStyle = `rgba(64, 200, 232, ${0.1 + 0.07 * Math.sin(time * 3 + tx * 5 + ty * 3)})`;
+            ctx.fillRect(x - 2, y - 2, TILE_SIZE + 4, TILE_SIZE + 4);
             ctx.fillStyle = bc.stoneDark;
             ctx.fillRect(x, y, TILE_SIZE, TILE_SIZE);
             if (isIce) {

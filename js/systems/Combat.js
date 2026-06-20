@@ -96,6 +96,9 @@ export function updateProjectiles(projectiles, map, dt, pool, enemies) {
   for (let i = 0; i < projectiles.length; i++) {
     const p = projectiles[i];
     if (!p.dead) {
+      if (!p._trail) p._trail = [];
+      p._trail.push({ x: p.x, y: p.y });
+      if (p._trail.length > 4) p._trail.shift();
       if (p.homing > 0 && p.owner === 'player' && enemies) {
         let nearest = null;
         let nearDist = 300;

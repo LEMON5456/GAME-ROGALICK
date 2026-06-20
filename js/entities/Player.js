@@ -3,6 +3,7 @@ import { moveWithCollisions, isOnGround } from '../world/Physics.js';
 import { fxSheets } from '../core/FXSheets.js';
 import { Animation } from '../core/Animations.js';
 import { audio } from '../core/Audio.js';
+import { drawShadow } from '../core/Shadow.js';
 
 const FRAME_W = 100;
 const FRAME_H = 100;
@@ -251,6 +252,7 @@ export class Player {
   }
 
   render(ctx, time) {
+    drawShadow(ctx, this.x, this.y, this.w, this.h);
     const flash = this.invincible > 0 && Math.floor(time * 20) % 2 === 0;
     if (flash) ctx.globalAlpha = 0.4;
 

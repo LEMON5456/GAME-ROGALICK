@@ -10,7 +10,19 @@ export function loadArrowSprite() {
   arrowImg.src = 'assets/sprites/arrow/Arrow01(32x32).png';
 }
 
-export function renderProjectile(ctx, p) {
+export function renderProjectile(ctx, p, dt) {
+  const trail = p._trail;
+  if (trail && trail.length > 1) {
+    for (let i = 0; i < trail.length; i++) {
+      const t = trail[i];
+      const alpha = ((i + 1) / (trail.length + 1)) * 0.25;
+      ctx.globalAlpha = alpha;
+      ctx.fillStyle = p.owner === 'player' ? '#ffee60' : '#ff6040';
+      ctx.fillRect(t.x, t.y, p.w, p.h);
+    }
+    ctx.globalAlpha = 1;
+  }
+
   const cx = p.x + p.w / 2;
   const cy = p.y + p.h / 2;
   const sprite = p.owner === 'player' ? SPRITES.projectile : SPRITES.enemyProjectile;

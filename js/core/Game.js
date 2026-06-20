@@ -125,6 +125,7 @@ export class Game {
     this.heartbeatTimer = 3;
     this._mapVisible = false;
     this._prevMapPressed = false;
+    this._damageVignette = 0;
     this._fadeAlpha = 0;
     this._fadeDir = 0;
     this._pendingFadeCallback = null;
@@ -556,6 +557,7 @@ export class Game {
   }
 
   update(dt) {
+    this._damageVignette = Math.max(0, this._damageVignette - dt);
     this.updateFade(dt);
     if (this.state !== STATE.PAUSED) {
       this.time += dt;
@@ -583,6 +585,7 @@ export class Game {
     if (this.player.justHurt) {
       this.player.justHurt = false;
       this.camera.shake(4, 0.15);
+      this._damageVignette = 0.3;
     }
     if (!this._playerWasGrounded && this.player.grounded && this.player.vy > 100) {
       spawnLandingParticles(this.player.x + this.player.w / 2, this.player.y + this.player.h, this.particles);
@@ -860,7 +863,7 @@ export class Game {
     }
     if (this.boss) this.boss.render(ctx, this.time);
     this.player.render(ctx, this.time);
-    for (const p of this.projectiles) renderProjectile(ctx, p);
+    for (const p of this.projectiles) renderProjectile(ctx, p, dt);
     for (const p of this.particles) p.render(ctx);
     for (const imp of this._impacts) {
       const total = fxSheets.get('weaponHit')?.totalFrames;
@@ -939,6 +942,14 @@ export class Game {
 
     if (this._mapVisible && this.map && (this.state === STATE.PLANET || this.state === STATE.BOSS || this.state === STATE.PAUSED)) {
       this.map.renderFullMap(ctx, this.canvas.width, this.canvas.height, this.player.x, this.player.y, this.enemies, this.pickups);
+    }
+
+    if (this._damageVignette > 0) {
+      const vig = ctx.createRadialGradient(w / 2, h / 2, h * 0.2, w / 2, h / 2, h * 0.7);
+      vig.addColorStop(0, 'rgba(0,0,0,0)');
+      vig.addColorStop(1, `rgba(180,0,0,${this._damageVignette * 0.5})`);
+      ctx.fillStyle = vig;
+      ctx.fillRect(0, 0, w, h);
     }
 
     if (this._fadeAlpha > 0) {

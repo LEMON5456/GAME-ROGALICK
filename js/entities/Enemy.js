@@ -4,6 +4,7 @@ import { moveWithCollisions, center, dist } from '../world/Physics.js';
 import { PHYSICS } from '../constants.js';
 import { sprites, SPRITES } from '../core/Sprites.js';
 import { Animation, getWalkFrames } from '../core/Animations.js';
+import { drawShadow } from '../core/Shadow.js';
 
 const ENEMY_SPRITES = {
   crawler: SPRITES.crawler,
@@ -56,6 +57,7 @@ export class Enemy {
     this._hurtTimer = 0;
     this._deathTimer = 0;
     this._attackTimer = 0;
+    this._spawnTimer = 0.3;
     this.anim = new Animation(getWalkFrames(0, this.type === 'spitter' ? 119 : 153, 17, 2), 0.2);
     if (type === 'orc') {
       this.anim = new Animation([0, 1, 2, 3, 4, 5], 0.12);
@@ -84,6 +86,7 @@ export class Enemy {
     this._hurtTimer = Math.max(0, this._hurtTimer - dt);
     this._deathTimer = Math.max(0, this._deathTimer - dt);
     this._attackTimer = Math.max(0, this._attackTimer - dt);
+    this._spawnTimer = Math.max(0, this._spawnTimer - dt);
 
     if (this.type === 'crawler') {
       this.vx = this.patrolDir * this.speed;
@@ -235,6 +238,10 @@ export class Enemy {
   render(ctx) {
     if (this.dead) return;
 
+    drawShadow(ctx, this.x, this.y, this.w, this.h);
+
+    if (this._spawnTimer > 0) ctx.globalAlpha = 1 - this._spawnTimer / 0.3;
+
     if (this.type === 'shield') {
       ctx.fillStyle = this._shieldActive ? '#4488cc' : '#6688aa';
       ctx.fillRect(this.x, this.y, this.w, this.h);
@@ -332,6 +339,8 @@ export class Enemy {
       ctx.fillStyle = this.elite ? '#ffd700' : '#f44';
       ctx.fillRect(this.x, this.y - 6, barW * (this.hp / this.maxHp), 4);
     }
+
+    ctx.globalAlpha = 1;
   }
 }
 

@@ -4,6 +4,7 @@ import { center, dist } from '../world/Physics.js';
 import { sprites } from '../core/Sprites.js';
 import { Animation, getWalkFrames } from '../core/Animations.js';
 import { audio } from '../core/Audio.js';
+import { drawShadow } from '../core/Shadow.js';
 
 export class Flyer {
   constructor(x, y) {
@@ -25,6 +26,7 @@ export class Flyer {
     this.fireCooldown = 1 + Math.random();
     this.baseY = y;
     this.anim = new Animation(getWalkFrames(0, 187), 0.2);
+    this._spawnTimer = 0.3;
   }
 
   update(dt, map, player, spawn) {
@@ -38,6 +40,7 @@ export class Flyer {
     if (this.x < 32) this.patrolDir = 1;
     if (this.x > map.pixelWidth() - 32 - this.w) this.patrolDir = -1;
 
+    this._spawnTimer = Math.max(0, this._spawnTimer - dt);
     this.fireCooldown -= dt;
     const pc = center(player);
     const fc = center(this);
@@ -60,6 +63,11 @@ export class Flyer {
 
   render(ctx) {
     if (this.dead) return;
+
+    drawShadow(ctx, this.x, this.y + 4, this.w, this.h - 4);
+
+    if (this._spawnTimer > 0) ctx.globalAlpha = 1 - this._spawnTimer / 0.3;
+
     const frame = this.anim.getFrame();
     const flip = this.patrolDir < 0;
     if (!sprites.drawScaled(ctx, frame, this.x, this.y, this.w, this.h, flip)) {
@@ -71,5 +79,7 @@ export class Flyer {
       ctx.lineWidth = 2;
       ctx.strokeRect(this.x - 1, this.y - 1, this.w + 2, this.h + 2);
     }
+
+    ctx.globalAlpha = 1;
   }
 }

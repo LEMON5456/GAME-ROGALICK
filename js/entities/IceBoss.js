@@ -1,6 +1,7 @@
 import { COMBAT } from '../constants.js';
 import { PHYSICS } from '../constants.js';
 import { moveWithCollisions, center } from '../world/Physics.js';
+import { drawShadow } from '../core/Shadow.js';
 
 const ICE_BOSS = {
   w: 56,
@@ -86,6 +87,9 @@ export class IceBoss {
 
   render(ctx, time) {
     if (this.dead) return;
+
+    drawShadow(ctx, this.x, this.y, this.w, this.h);
+
     const pulse = 1 + Math.sin(time * 3) * 0.04;
     ctx.fillStyle = this.phase === 2 ? '#80d0ff' : '#88ccff';
     ctx.shadowColor = '#44aaff';

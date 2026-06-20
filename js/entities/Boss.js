@@ -5,6 +5,7 @@ import { Enemy } from './Enemy.js';
 import { PHYSICS } from '../constants.js';
 import { sprites } from '../core/Sprites.js';
 import { Animation, getWalkFrames } from '../core/Animations.js';
+import { drawShadow } from '../core/Shadow.js';
 
 export class Boss {
   constructor(x, y) {
@@ -97,6 +98,8 @@ export class Boss {
 
   render(ctx, time) {
     if (this.dead) return;
+
+    drawShadow(ctx, this.x, this.y, this.w, this.h);
 
     if (this.telegraphing) {
       const bc = center(this);

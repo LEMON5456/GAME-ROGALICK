@@ -2,6 +2,7 @@ import { COMBAT } from '../constants.js';
 import { PHYSICS } from '../constants.js';
 import { moveWithCollisions, center } from '../world/Physics.js';
 import { Enemy } from './Enemy.js';
+import { drawShadow } from '../core/Shadow.js';
 
 const LAVA_BOSS = {
   w: 52,
@@ -98,6 +99,8 @@ export class LavaBoss {
 
   render(ctx, time) {
     if (this.dead) return;
+
+    drawShadow(ctx, this.x, this.y, this.w, this.h);
 
     const pulse = 1 + Math.sin(time * 4) * 0.06;
     ctx.fillStyle = this.phase === 2 ? '#f08030' : '#d05020';
