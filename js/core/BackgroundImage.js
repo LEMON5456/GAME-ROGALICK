@@ -26,15 +26,34 @@ export class BackgroundImage {
     ctx.fillStyle = grad;
     ctx.fillRect(0, 0, w, h);
 
-    for (let i = 0; i < 200; i++) {
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.15)';
+    for (let i = 0; i < 300; i++) {
       const sx = ((i * 137 + 42) % 1000) / 1000;
       const sy = ((i * 251 + 89) % 1000) / 1000;
-      const size = 0.5 + ((i * 73 + 17) % 4) * 0.5;
-      const bright = 0.3 + ((i * 97 + 33) % 7) * 0.1;
+      const size = 0.5 + ((i * 73 + 17) % 3) * 0.4;
       const tw = Math.max(0, Math.sin(time * (1.5 + (i % 5) * 0.5) + i * 2.7));
       const rx = ((sx * 1000 - px * 0.03) % w + w) % w;
       const ry = sy * h % h;
-      ctx.fillStyle = `rgba(200, 220, 255, ${bright * (0.5 + 0.5 * tw)})`;
+      ctx.fillRect(rx, ry, size, size);
+    }
+    ctx.fillStyle = 'rgba(200, 220, 255, 0.35)';
+    for (let i = 0; i < 100; i++) {
+      const sx = ((i * 313 + 71) % 1000) / 1000;
+      const sy = ((i * 509 + 43) % 1000) / 1000;
+      const size = 1 + ((i * 179 + 11) % 3);
+      const tw = Math.max(0, Math.sin(time * (2 + (i % 3) * 0.7) + i * 3.1));
+      const rx = ((sx * 1000 - px * 0.05) % w + w) % w;
+      const ry = sy * h % h;
+      ctx.fillRect(rx, ry, size, size);
+    }
+    ctx.fillStyle = 'rgba(180, 200, 255, 0.6)';
+    for (let i = 0; i < 30; i++) {
+      const sx = ((i * 577 + 19) % 1000) / 1000;
+      const sy = ((i * 823 + 67) % 1000) / 1000;
+      const size = 1.5 + ((i * 281 + 53) % 3) * 0.5;
+      const tw = Math.max(0, Math.sin(time * (2.5 + (i % 4) * 0.4) + i * 4.3));
+      const rx = ((sx * 1000 - px * 0.04) % w + w) % w;
+      const ry = sy * h % h;
       ctx.fillRect(rx, ry, size, size);
     }
 
