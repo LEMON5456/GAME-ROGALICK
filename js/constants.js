@@ -60,8 +60,8 @@ export const MINING = {
 export const PLANET_TIMER = 210;
 
 export const TUNNEL = {
-  CAVE_TOP: 8,
-  CAVE_BOTTOM: 15,
-  FLOOR_TY: 16,
-  CEILING_TY: 7,
+  CAVE_TOP: 6,
+  CAVE_BOTTOM: 17,
+  FLOOR_TY: 18,
+  CEILING_TY: 5,
 };
