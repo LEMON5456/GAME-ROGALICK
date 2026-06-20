@@ -24,10 +24,14 @@ try {
         ".css" { "text/css; charset=utf-8" }
         ".html" { "text/html; charset=utf-8" }
       ".png" { "image/png" }
+      ".jpg" { "image/jpeg" }
+      ".jpeg" { "image/jpeg" }
       ".mp3" { "audio/mpeg" }
       default { "application/octet-stream" }
       }
       $resp.ContentType = $ct
+      $resp.Headers.Add("Cache-Control", "no-cache, must-revalidate")
+      $resp.Headers.Add("Pragma", "no-cache")
       $resp.ContentLength64 = $data.Length
       $resp.OutputStream.Write($data, 0, $data.Length)
     } else {
