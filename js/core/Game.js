@@ -258,12 +258,7 @@ export class Game {
     this.snowParticles = [];
     this.events = [];
     audio.setBiome(this.biome);
-
-    const img = new Image();
-    img.onload = () => { this.bgImage._images['space'] = img; this.bgImage._loaded['space'] = true; };
-    img.onerror = () => { console.error('sector1 bg FAILED'); };
-    img.src = 'assets/backgrounds/bg_sector1.jpg';
-
+    this.bgImage.load(this.biome);
     audio.startMusic(this.biome);
   }
 
@@ -337,13 +332,7 @@ export class Game {
       this.snowParticles = spawnEmbers(this.canvas.width, this.canvas.height);
     }
     audio.setBiome(this.biome);
-    if (this.run && this.run.sector === 'sector1') {
-      const img = new Image();
-      img.onload = () => { this.bgImage._images['space'] = img; this.bgImage._loaded['space'] = true; };
-      img.src = 'assets/backgrounds/bg_sector1.jpg';
-    } else {
-      this.bgImage.load(this.biome);
-    }
+    this.bgImage.load(this.biome);
     this.events = generateEvents(this.planetConfig, this.map);
     for (const ev of this.events) {
       const enemy = initEventEnemy(ev);
@@ -825,13 +814,13 @@ export class Game {
 
     const bc = getBiome(this.biome);
     if (this.bgImage && this.bgImage.isReady(bgKey)) {
-      this.bgImage.render(ctx, bgKey, this.camera, w, h);
+      this.bgImage.render(ctx, bgKey, this.camera, w, h, this.time);
     }
+    ctx.globalAlpha = 0.08;
     const grad = ctx.createLinearGradient(0, 0, 0, h);
     grad.addColorStop(0, bc.sky1);
     grad.addColorStop(1, bc.sky2);
     ctx.fillStyle = grad;
-    ctx.globalAlpha = this.biome === 'ice' ? 0.2 : (this.bgImage && this.bgImage.isReady(bgKey) ? 0.5 : 1);
     ctx.fillRect(0, 0, w, h);
     ctx.globalAlpha = 1;
 
@@ -997,12 +986,6 @@ export class Game {
     const parallax1 = this.camera.x * 0.2;
     const parallax2 = this.camera.x * 0.4;
     const isIce = this.biome === 'ice';
-
-    const grad = ctx.createLinearGradient(0, 0, 0, this.canvas.height);
-    grad.addColorStop(0, bc.sky1);
-    grad.addColorStop(1, bc.sky2);
-    ctx.fillStyle = grad;
-    ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
 
     ctx.fillStyle = bc.parallaxColor1;
     ctx.fillRect(-parallax1 % 200 - 50, 80, 120, 40);
