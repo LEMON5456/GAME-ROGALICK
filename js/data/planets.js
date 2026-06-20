@@ -6,8 +6,10 @@ export const SECTOR_1 = {
     {
       id: 'planet1',
       name: 'Планета Alpha-7',
-      ironCount: 20,
-      crystalCount: 18,
+      width: 60,
+      height: 30,
+      ironCount: 10,
+      crystalCount: 8,
       hazards: false,
       timeBonus: 0,
       enemies: [
@@ -20,8 +22,10 @@ export const SECTOR_1 = {
     {
       id: 'planet2',
       name: 'Планета Beta-3',
-      ironCount: 15,
-      crystalCount: 28,
+      width: 60,
+      height: 30,
+      ironCount: 8,
+      crystalCount: 14,
       hazards: true,
       timeBonus: 20,
       enemies: [
@@ -46,8 +50,10 @@ export const SECTOR_2 = {
     {
       id: 'planet3',
       name: 'Глетчер-1',
-      ironCount: 18,
-      crystalCount: 22,
+      width: 60,
+      height: 30,
+      ironCount: 9,
+      crystalCount: 11,
       hazards: true,
       timeBonus: 10,
       enemies: [
@@ -63,8 +69,10 @@ export const SECTOR_2 = {
     {
       id: 'planet4',
       name: 'Глетчер-2',
-      ironCount: 22,
-      crystalCount: 30,
+      width: 60,
+      height: 30,
+      ironCount: 11,
+      crystalCount: 15,
       hazards: true,
       timeBonus: 20,
       enemies: [
@@ -83,8 +91,10 @@ export const SECTOR_2 = {
     {
       id: 'planet5',
       name: 'Глетчер-3',
-      ironCount: 28,
-      crystalCount: 35,
+      width: 60,
+      height: 30,
+      ironCount: 14,
+      crystalCount: 17,
       hazards: true,
       timeBonus: 30,
       enemies: [
@@ -120,8 +130,10 @@ export const SECTOR_3 = {
     {
       id: 'planet6',
       name: 'Инферно-1',
-      ironCount: 25,
-      crystalCount: 20,
+      width: 60,
+      height: 30,
+      ironCount: 12,
+      crystalCount: 10,
       hazards: true,
       timeBonus: 15,
       enemies: [
@@ -137,8 +149,10 @@ export const SECTOR_3 = {
     {
       id: 'planet7',
       name: 'Инферно-2',
-      ironCount: 30,
-      crystalCount: 25,
+      width: 60,
+      height: 30,
+      ironCount: 15,
+      crystalCount: 12,
       hazards: true,
       timeBonus: 20,
       enemies: [
@@ -157,8 +171,10 @@ export const SECTOR_3 = {
     {
       id: 'planet8',
       name: 'Инферно-3',
-      ironCount: 35,
-      crystalCount: 35,
+      width: 60,
+      height: 30,
+      ironCount: 17,
+      crystalCount: 17,
       hazards: true,
       timeBonus: 25,
       enemies: [
