@@ -75,6 +75,13 @@ export const SPAWN = {
   EVENT_CHANCE: 0.4,
 };
 
+export const MAX_ARRAYS = {
+  PARTICLES: 500,
+  IMPACTS: 50,
+  FLOATING_TEXTS: 30,
+  SNOW_PARTICLES: 120,
+};
+
 export const PLANET_TIMER = 210;
 
 export const TUNNEL = {

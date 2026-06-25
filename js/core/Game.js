@@ -16,7 +16,7 @@ import { MenuUI } from '../ui/MenuUI.js';
 import { MetaShopUI } from '../ui/MetaShopUI.js';
 import { PauseUI } from '../ui/PauseUI.js';
 import { BOSS_PLANET, ICE_BOSS_PLANET, LAVA_BOSS_PLANET, getPlanetsForSector, getSectorInfo } from '../data/planets.js';
-import { PLANET_TIMER, SPAWN } from '../constants.js';
+import { PLANET_TIMER, SPAWN, MAX_ARRAYS } from '../constants.js';
 import { placeEntitySafely, isOnGround, aabbOverlap } from '../world/Physics.js';
 import { SaveManager } from './SaveManager.js';
 import { audio } from './Audio.js';
@@ -100,8 +100,8 @@ export class Game {
     this._projectilePool = [];
     this.projectiles = [];
     this._clearPool = () => {
-      this._projectilePool.push(...this.projectiles);
-      this.projectiles.length = 0;
+      this._projectilePool = this.projectiles;
+      this.projectiles = [];
     };
     this.boss = null;
     this.planetConfig = null;

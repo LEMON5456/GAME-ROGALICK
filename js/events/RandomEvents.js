@@ -7,15 +7,16 @@ const EVENT_CHANCE = SPAWN.EVENT_CHANCE;
 function rand(min, max) { return min + Math.random() * (max - min); }
 
 function spendOre(run, type, amount) {
-  let left = amount;
+  const total = type === 'iron' ? (run.sessionOre.iron + run.oreBank.iron) : (run.sessionOre.crystal + run.oreBank.crystal);
+  const spent = Math.min(amount, total);
+  let left = spent;
   const session = type === 'iron' ? run.sessionOre.iron : run.sessionOre.crystal;
-  const bank = type === 'iron' ? run.oreBank.iron : run.oreBank.crystal;
   const sKey = type === 'iron' ? 'iron' : 'crystal';
   const bKey = type === 'iron' ? 'iron' : 'crystal';
   if (session >= left) { run.sessionOre[sKey] -= left; return; }
   run.sessionOre[sKey] = 0;
   left -= session;
-  run.oreBank[bKey] -= left;
+  if (left > 0) run.oreBank[bKey] -= left;
 }
 
 function totalOre(run, type) {

@@ -110,7 +110,7 @@ export function updateProjectiles(projectiles, map, dt, pool, enemies) {
           const d = Math.sqrt(dx * dx + dy * dy);
           if (d < nearDist) { nearDist = d; nearest = e; }
         }
-        if (nearest) {
+        if (nearest && !nearest.dead) {
           const targetX = nearest.x + nearest.w / 2;
           const targetY = nearest.y + nearest.h / 2;
           const dx = targetX - (p.x + p.w / 2);
