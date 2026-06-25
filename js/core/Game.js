@@ -16,21 +16,18 @@ import { MenuUI } from '../ui/MenuUI.js';
 import { MetaShopUI } from '../ui/MetaShopUI.js';
 import { PauseUI } from '../ui/PauseUI.js';
 import { BOSS_PLANET, ICE_BOSS_PLANET, LAVA_BOSS_PLANET, getPlanetsForSector, getSectorInfo } from '../data/planets.js';
-import { COLORS, PLANET_TIMER, TILE, TILE_SIZE, TUNNEL } from '../constants.js';
+import { PLANET_TIMER, SPAWN } from '../constants.js';
 import { placeEntitySafely, isOnGround, aabbOverlap } from '../world/Physics.js';
 import { SaveManager } from './SaveManager.js';
 import { audio } from './Audio.js';
-import { iceTiles } from './TileManager.js';
 import { Lighting } from './Lighting.js';
-import { getBiome } from '../data/biomes.js';
-import { renderProjectile } from '../entities/Projectile.js';
 import { spawnMineParticles, spawnDeathParticles, spawnMuzzleFlash, spawnLandingParticles, spawnSnow, spawnEmbers } from '../entities/Particle.js';
 import { Pickup } from '../entities/Pickup.js';
 import { Crate } from '../entities/Crate.js';
 import { generateEvents, initEventEnemy } from '../events/RandomEvents.js';
 import { FloatingText } from '../entities/FloatingText.js';
 import { BackgroundImage } from './BackgroundImage.js';
-import { fxSheets } from './SheetManager.js';
+import { renderGame } from './GameRender.js';
 
 const STATE = {
   MENU: 'menu',
@@ -275,7 +272,7 @@ export class Game {
     p.gravity = owner === 'boss' ? 400 : 0;
     p.homing = homing;
     this.projectiles.push(p);
-    if (this.projectiles.length > 80) {
+    if (this.projectiles.length > SPAWN.PROJECTILE_LIMIT) {
       this.projectiles[0].dead = true;
     }
     return p;
@@ -766,7 +763,7 @@ export class Game {
         this.run.kills = (this.run.kills || 0) + 1;
         this.player.addUltimateCharge(8);
         if (this.run.vampirism) {
-          this.player.hp = Math.min(this.player.hp + Math.round(15 * this.run.vampirism), this.player.maxHp);
+          this.player.hp = Math.min(this.player.hp + Math.round(SPAWN.VAMPIRE_HEAL * this.run.vampirism), this.player.maxHp);
         }
         if (e.elite || Math.random() < 0.4) {
           const oreType = Math.random() < 0.6 ? 'iron' : 'crystal';
@@ -775,7 +772,7 @@ export class Game {
         if (e.etherDrop > 0) {
           SaveManager.awardEtherSerum(this.meta, e.etherDrop);
         }
-        if (Math.random() < 0.2) {
+        if (Math.random() < SPAWN.PICKUP_DROP_CHANCE) {
           const types = ['shield', 'speed', 'oreDrop'];
           this.pickups.push(new Pickup(e.x, e.y + e.h / 2, types[Math.floor(Math.random() * 3)]));
         }
@@ -806,254 +803,6 @@ export class Game {
   }
 
   render(dt) {
-    const ctx = this.ctx;
-    const w = this.canvas.width;
-    const h = this.canvas.height;
-
-    const bgKey = this.biome;
-
-    const bc = getBiome(this.biome);
-    if (this.bgImage && this.bgImage.isReady(bgKey)) {
-      this.bgImage.render(ctx, bgKey, this.camera, w, h, this.time);
-    }
-    ctx.globalAlpha = 0.08;
-    const grad = ctx.createLinearGradient(0, 0, 0, h);
-    grad.addColorStop(0, bc.sky1);
-    grad.addColorStop(1, bc.sky2);
-    ctx.fillStyle = grad;
-    ctx.fillRect(0, 0, w, h);
-    ctx.globalAlpha = 1;
-
-    if (this.state !== STATE.PLANET && this.state !== STATE.BOSS && this.state !== STATE.PAUSED) return;
-
-    this.renderBackground(ctx, bc);
-    this.camera.apply(ctx, dt);
-    this.map.render(ctx, this.camera, this.time);
-    this.map.renderIceSprites(ctx, this.camera);
-    this.map.renderMarkers(ctx, this.time);
-    if (fxSheets.isReady()) {
-      const ex = this.map.exitX;
-      const ey = this.map.exitY;
-      const portalH = (TUNNEL.CAVE_BOTTOM - TUNNEL.CAVE_TOP + 2) * TILE_SIZE;
-      const total = fxSheets.get('magicSpell')?.totalFrames ?? 1;
-      const frame = Math.floor(this.time * 8) % total;
-      const scale = portalH / 100;
-      const sw = Math.round(100 * scale);
-      const sh = Math.round(100 * scale);
-      fxSheets.drawFrame(ctx, 'magicSpell', frame, ex - sw / 2, ey - sh, sw, sh);
-    }
-    this.map.renderMiningTargets(ctx, this.mining.targets, this.time);
-
-    for (const e of this.enemies) e.render(ctx);
-    for (const p of this.pickups) p.render(ctx);
-    for (const c of this.crates) c.render(ctx);
-    for (const ev of this.events) {
-      if (ev.active && !ev.dead) ev.render(ctx);
-    }
-    if (this.boss) this.boss.render(ctx, this.time);
-    this.player.render(ctx, this.time);
-    for (const p of this.projectiles) renderProjectile(ctx, p, dt);
-    for (const p of this.particles) p.render(ctx);
-    for (const imp of this._impacts) {
-      const total = fxSheets.get('weaponHit')?.totalFrames;
-      if (total == null) continue;
-      const idx = Math.floor((1 - imp.life / 0.25) * total);
-      const size = 24;
-      fxSheets.drawFrame(ctx, 'weaponHit', idx, imp.x - size / 2, imp.y - size / 2, size, size);
-    }
-    for (const t of this.floatingTexts) t.render(ctx);
-
-    this.camera.restore(ctx);
-
-    const darkMult = this.run ? (this.run.darknessMult || 1) : 1;
-    this.lighting.clear();
-    this.lighting.add(this.player.x + this.player.w / 2, this.player.y + this.player.h / 2, 180 * darkMult, [255, 220, 150], 0.6 * darkMult);
-    if (this.map) {
-      const cx = Math.floor((this.camera.x + this.canvas.width / 2) / 32);
-      const cy = Math.floor((this.camera.y + this.canvas.height / 2) / 32);
-      const viewTx = Math.ceil(this.canvas.width / 64);
-      const viewTy = Math.ceil(this.canvas.height / 64);
-      for (let tx = cx - viewTx; tx <= cx + viewTx; tx++) {
-        for (let ty = cy - viewTy; ty <= cy + viewTy; ty++) {
-          const tile = this.map.get(tx, ty);
-          if (tile === TILE.ORE_IRON || tile === TILE.ORE_CRYSTAL) {
-            this.lighting.add(tx * 32 + 16, ty * 32 + 16, 40, tile === TILE.ORE_CRYSTAL ? [100, 200, 255] : [255, 160, 80], 0.3);
-          } else if (tile === TILE.EXIT_PAD) {
-            this.lighting.add(this.map.exitX, this.map.exitY, 100, [80, 255, 160], 0.4);
-          }
-        }
-      }
-    }
-    if (this.biome === 'ice') {
-      for (let i = 0; i < 6; i++) {
-        const lx = Math.random() * this.canvas.width;
-        const ly = this.camera.y + Math.random() * this.canvas.height;
-        this.lighting.add(lx, ly, 50, [120, 220, 255], 0.15);
-      }
-    }
-    if (this.biome === 'lava') {
-      for (let i = 0; i < 4; i++) {
-        const lx = Math.random() * this.canvas.width;
-        const ly = this.camera.y + Math.random() * this.canvas.height;
-        this.lighting.add(lx, ly, 60, [255, 100, 30], 0.15);
-      }
-    }
-    this.lighting.render(ctx, null);
-
-    for (const s of this.snowParticles) s.render(ctx);
-
-    this._drawExitBeacon(ctx);
-
-    if (this.map && (this.state === STATE.PLANET || this.state === STATE.BOSS)) {
-      this.map.renderMinimap(ctx, this.canvas.width - 130, 8, 120, 80, this.player.x, this.player.y);
-    }
-
-    if (this.state === STATE.PLANET && this.planetTimer.remaining <= 30) {
-      const grad = ctx.createRadialGradient(w / 2, h / 2, h * 0.2, w / 2, h / 2, h * 0.7);
-      grad.addColorStop(0, 'rgba(0,0,0,0)');
-      grad.addColorStop(1, `rgba(180,0,0,${0.15 + 0.1 * Math.sin(this.time * 4)})`);
-      ctx.fillStyle = grad;
-      ctx.fillRect(0, 0, w, h);
-    }
-
-    if (this.state === STATE.BOSS) {
-      ctx.fillStyle = 'rgba(255,255,255,0.9)';
-      ctx.font = '14px sans-serif';
-      ctx.textAlign = 'center';
-      const bossName = this.biome === 'lava' ? 'Lava Titan' : 'Mould Titan';
-      ctx.fillText('Победите ' + bossName + '!', this.canvas.width / 2, 30);
-    } else if (this.planetConfig) {
-      ctx.fillStyle = 'rgba(255,255,255,0.8)';
-      ctx.font = '13px sans-serif';
-      ctx.textAlign = 'left';
-      ctx.fillText(this.planetConfig.name, 16, 24);
-    }
-
-    if (this._mapVisible && this.map && (this.state === STATE.PLANET || this.state === STATE.BOSS || this.state === STATE.PAUSED)) {
-      this.map.renderFullMap(ctx, this.canvas.width, this.canvas.height, this.player.x, this.player.y, this.enemies, this.pickups);
-    }
-
-    if (this._damageVignette > 0) {
-      const vig = ctx.createRadialGradient(w / 2, h / 2, h * 0.2, w / 2, h / 2, h * 0.7);
-      vig.addColorStop(0, 'rgba(0,0,0,0)');
-      vig.addColorStop(1, `rgba(180,0,0,${this._damageVignette * 0.5})`);
-      ctx.fillStyle = vig;
-      ctx.fillRect(0, 0, w, h);
-    }
-
-    if (this._fadeAlpha > 0) {
-      ctx.fillStyle = `rgba(0,0,0,${this._fadeAlpha})`;
-      ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
-    }
-  }
-
-  _drawExitBeacon(ctx) {
-    if (!this.map || this.state !== STATE.PLANET) return;
-    const ex = this.map.exitX;
-    const ey = this.map.exitY;
-    const cx = this.camera.x + this.canvas.width / 2;
-    const cy = this.camera.y + this.canvas.height / 2;
-    const dx = ex - cx;
-    const dy = ey - cy;
-    const dist = Math.sqrt(dx * dx + dy * dy);
-    if (dist < 200) return;
-    const angle = Math.atan2(dy, dx);
-    const pad = 60;
-    const hw = this.canvas.width / 2 - pad;
-    const hh = this.canvas.height / 2 - pad;
-    const t = Math.min(hw / Math.abs(Math.cos(angle) || 0.001), hh / Math.abs(Math.sin(angle) || 0.001));
-    const bx = this.canvas.width / 2 + Math.cos(angle) * t;
-    const by = this.canvas.height / 2 + Math.sin(angle) * t;
-    ctx.save();
-    ctx.translate(bx, by);
-    ctx.rotate(angle);
-    const pulse = 0.7 + Math.sin(this.time * 3) * 0.3;
-    ctx.fillStyle = `rgba(80, 255, 140, ${pulse})`;
-    ctx.beginPath();
-    ctx.moveTo(14, 0);
-    ctx.lineTo(-6, -8);
-    ctx.lineTo(-6, 8);
-    ctx.closePath();
-    ctx.fill();
-    ctx.fillStyle = `rgba(80, 255, 140, ${0.5 + pulse * 0.3})`;
-    ctx.font = '10px sans-serif';
-    ctx.textAlign = 'center';
-    ctx.fillText('ВЫХОД', 0, -16);
-    ctx.restore();
-  }
-
-  renderBackground(ctx, bc) {
-    const parallax1 = this.camera.x * 0.2;
-    const parallax2 = this.camera.x * 0.4;
-    const isIce = this.biome === 'ice';
-
-    ctx.fillStyle = bc.parallaxColor1;
-    ctx.fillRect(-parallax1 % 200 - 50, 80, 120, 40);
-    ctx.fillRect(-parallax1 % 200 + 150, 120, 80, 30);
-
-    ctx.fillStyle = bc.parallaxColor2;
-    ctx.fillRect(-parallax2 % 300 - 80, 160, 160, 50);
-
-    if (isIce) {
-      for (let i = 0; i < 5; i++) {
-        const px = (-parallax1 * (0.5 + i * 0.2) % 400 - 100 + i * 90 + 50) % this.canvas.width;
-        const py = 40 + (i * 30 + Math.sin(this.time + i) * 10) % 140;
-        ctx.fillStyle = `rgba(200, 240, 255, ${0.08 + Math.sin(this.time * 0.5 + i) * 0.04})`;
-        ctx.beginPath();
-        ctx.moveTo(px, py - 10);
-        ctx.lineTo(px - 4, py + 6);
-        ctx.lineTo(px + 4, py + 6);
-        ctx.closePath();
-        ctx.fill();
-      }
-
-      const w = this.canvas.width;
-      const h = this.canvas.height;
-      for (let side = 0; side < 2; side++) {
-        const baseX = side === 0 ? -parallax1 * 0.3 % 100 - 40 : w + parallax1 * 0.3 % 100 - 60;
-        const fallGrad = ctx.createLinearGradient(baseX, 0, baseX + 50, 0);
-        fallGrad.addColorStop(0, 'rgba(160, 230, 255, 0)');
-        fallGrad.addColorStop(0.3, `rgba(180, 240, 255, ${0.08 + 0.05 * Math.sin(this.time * 0.5)})`);
-        fallGrad.addColorStop(0.7, `rgba(160, 230, 255, ${0.06 + 0.04 * Math.sin(this.time * 0.3 + 1)})`);
-        fallGrad.addColorStop(1, 'rgba(160, 230, 255, 0)');
-        ctx.fillStyle = fallGrad;
-        ctx.fillRect(baseX, 20, 50, h * 0.7);
-        for (let j = 0; j < 6; j++) {
-          const stripY = 30 + j * (h * 0.7 / 6);
-          ctx.fillStyle = `rgba(200, 245, 255, ${0.06 + 0.04 * Math.sin(this.time * 0.7 + j)})`;
-          ctx.fillRect(baseX + 8 + Math.sin(this.time + j) * 5, stripY, 34, 8);
-          ctx.fillRect(baseX + 14 + Math.cos(this.time * 0.5 + j) * 4, stripY + 12, 22, 6);
-        }
-      }
-
-      if (iceTiles.isReady('entities')) {
-        const hw = this.canvas.width / 2;
-        const hh = this.canvas.height / 2;
-        iceTiles.drawDecor(ctx, 8, -parallax1 * 0.15 % 300 - 40, hh * 0.7, 32, 32);
-        iceTiles.drawDecor(ctx, 9, w - 140 + parallax1 * 0.15 % 300, hh * 0.75, 32, 32);
-      }
-    }
-
-    if (this.biome === 'lava') {
-      const w = this.canvas.width;
-      const h = this.canvas.height;
-      for (let i = 0; i < 4; i++) {
-        const px = (-parallax1 * (0.3 + i * 0.25) % 300 + i * 80) % w;
-        const py = 60 + (i * 40 + Math.sin(this.time * 0.3 + i * 2) * 15) % (h * 0.4);
-        ctx.fillStyle = `rgba(255, 120, 40, ${0.06 + 0.04 * Math.sin(this.time * 0.4 + i)})`;
-        ctx.beginPath();
-        ctx.arc(px, py, 6 + Math.sin(this.time + i) * 2, 0, Math.PI * 2);
-        ctx.fill();
-      }
-      for (let side = 0; side < 2; side++) {
-        const baseX = side === 0 ? -parallax1 * 0.2 % 120 - 30 : w + parallax1 * 0.2 % 120 - 30;
-        const grad = ctx.createLinearGradient(baseX, 0, baseX + 30, 0);
-        grad.addColorStop(0, 'rgba(255, 80, 20, 0)');
-        grad.addColorStop(0.5, `rgba(255, 120, 40, ${0.05 + 0.04 * Math.sin(this.time * 0.6)})`);
-        grad.addColorStop(1, 'rgba(255, 80, 20, 0)');
-        ctx.fillStyle = grad;
-        ctx.fillRect(baseX, 30, 30, h * 0.6);
-      }
-    }
+    renderGame(this, dt);
   }
 }

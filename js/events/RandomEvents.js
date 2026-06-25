@@ -1,8 +1,8 @@
-import { TILE, TILE_SIZE, TUNNEL } from '../constants.js';
+import { TILE, TILE_SIZE, TUNNEL, SPAWN } from '../constants.js';
 import { audio } from '../core/Audio.js';
 import { SaveManager } from '../core/SaveManager.js';
 
-const EVENT_CHANCE = 0.4;
+const EVENT_CHANCE = SPAWN.EVENT_CHANCE;
 
 function rand(min, max) { return min + Math.random() * (max - min); }
 

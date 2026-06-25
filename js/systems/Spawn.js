@@ -1,3 +1,4 @@
+import { SPAWN } from '../constants.js';
 import { findEnemySpawns } from '../world/PlanetGen.js';
 import { spawnEnemies } from '../entities/Enemy.js';
 import { Flyer } from '../entities/Flyer.js';
@@ -5,7 +6,7 @@ import { placeEntitySafely } from '../world/Physics.js';
 import { audio } from '../core/Audio.js';
 
 export function applyElite(e) {
-  if (Math.random() < 0.15) {
+  if (Math.random() < SPAWN.ELITE_CHANCE) {
     e.elite = true;
     e.maxHp = e.hp;
     e.hp = Math.round(e.hp * 2);

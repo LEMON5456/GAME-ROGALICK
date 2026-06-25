@@ -57,6 +57,24 @@ export const MINING = {
   RANGE: 96,
 };
 
+export const PLAYER = {
+  REGEN_INTERVAL: 5,
+  REGEN_DELAY: 2,
+  ULTIMATE_CHARGE: 100,
+  FRICTION: 0.85,
+  ICE_FRICTION: 0.85,
+};
+
+export const SPAWN = {
+  ELITE_CHANCE: 0.15,
+  PICKUP_DROP_CHANCE: 0.2,
+  VAMPIRE_HEAL: 15,
+  HOMING_RADIUS: 300,
+  HOMING_STEER: 0.15,
+  PROJECTILE_LIMIT: 80,
+  EVENT_CHANCE: 0.4,
+};
+
 export const PLANET_TIMER = 210;
 
 export const TUNNEL = {

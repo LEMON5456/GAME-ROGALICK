@@ -1,3 +1,4 @@
+import { SPAWN } from '../constants.js';
 import { aabbOverlap } from '../world/Physics.js';
 import { getProjectileDamage } from '../entities/Projectile.js';
 import { FloatingText } from '../entities/FloatingText.js';
@@ -101,7 +102,7 @@ export function updateProjectiles(projectiles, map, dt, pool, enemies) {
       if (p._trail.length > 4) p._trail.shift();
       if (p.homing > 0 && p.owner === 'player' && enemies) {
         let nearest = null;
-        let nearDist = 300;
+        let nearDist = SPAWN.HOMING_RADIUS;
         for (const e of enemies) {
           if (e.dead) continue;
           const dx = (e.x + e.w / 2) - (p.x + p.w / 2);
@@ -117,7 +118,7 @@ export function updateProjectiles(projectiles, map, dt, pool, enemies) {
           const d = Math.sqrt(dx * dx + dy * dy);
           if (d > 1) {
             const speed = Math.sqrt(p.vx * p.vx + p.vy * p.vy) || 200;
-            const steer = 0.15;
+            const steer = SPAWN.HOMING_STEER;
             p.vx += (dx / d * speed - p.vx) * steer;
             p.vy += (dy / d * speed - p.vy) * steer;
           }

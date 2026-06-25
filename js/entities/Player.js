@@ -1,4 +1,4 @@
-import { PHYSICS, COMBAT, COLORS } from '../constants.js';
+import { PHYSICS, COMBAT, COLORS, PLAYER as P } from '../constants.js';
 import { moveWithCollisions, isOnGround } from '../world/Physics.js';
 import { fxSheets } from '../core/SheetManager.js';
 import { Animation } from '../core/Animations.js';
@@ -104,18 +104,18 @@ export class Player {
     this.lastHurtTime += dt;
     this.speedBoost = Math.max(0, this.speedBoost - dt);
 
-    if (this.lastHurtTime > 2 && this.hp < this.maxHp) {
+    if (this.lastHurtTime > P.REGEN_DELAY && this.hp < this.maxHp) {
       this.regenTimer += dt;
-      while (this.regenTimer >= 5) {
-        this.regenTimer -= 5;
+      while (this.regenTimer >= P.REGEN_INTERVAL) {
+        this.regenTimer -= P.REGEN_INTERVAL;
         this.hp = Math.min(this.hp + 1, this.maxHp);
       }
-    } else if (this.lastHurtTime <= 2) {
+    } else if (this.lastHurtTime <= P.REGEN_DELAY) {
       this.regenTimer = 0;
     }
 
     const speedMult = (this.speedBoost > 0 ? 1.5 : 1) * this.speedMult;
-    const friction = biome === 'ice' ? 0.85 : 1;
+    const friction = biome === 'ice' ? P.FRICTION : 1;
     let moving = false;
     if (input.left()) {
       this.vx = -PHYSICS.PLAYER_SPEED * speedMult;
@@ -171,11 +171,11 @@ export class Player {
   }
 
   addUltimateCharge(amount) {
-    this.ultimateCharge = Math.min(100, this.ultimateCharge + amount);
+    this.ultimateCharge = Math.min(P.ULTIMATE_CHARGE, this.ultimateCharge + amount);
   }
 
   useUltimate() {
-    if (this.ultimateCharge < 100 || this.ultimateActive > 0) return false;
+    if (this.ultimateCharge < P.ULTIMATE_CHARGE || this.ultimateActive > 0) return false;
     this.ultimateCharge = 0;
     this.ultimateActive = 5;
     return true;
