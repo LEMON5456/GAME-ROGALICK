@@ -545,7 +545,7 @@ export class Game {
   update(dt) {
     this._damageVignette = Math.max(0, this._damageVignette - dt);
     this.updateFade(dt);
-    if (this.state !== STATE.PAUSED) {
+    if (this.state === STATE.PLANET || this.state === STATE.BOSS || this.state === STATE.PAUSED) {
       this.time += dt;
     }
 

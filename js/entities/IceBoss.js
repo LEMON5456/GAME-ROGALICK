@@ -33,6 +33,7 @@ export class IceBoss {
     this._chargeDir = 0;
     this._chargeSpeed = 0;
     this._chargeTime = 0;
+    this._timers = [];
   }
 
   get speed() {
@@ -72,9 +73,10 @@ export class IceBoss {
       } else {
         this.fireCooldown = this.phase === 2 ? 1.2 : 2;
         for (let i = -1; i <= 1; i++) {
-          setTimeout(() => {
+          const id = setTimeout(() => {
             if (!this.dead) spawn(bc.x, bc.y - 10, pc.x < bc.x ? -1 : 1, COMBAT.PROJECTILE_SPEED * 0.5, 'boss', i * 60);
           }, Math.abs(i) * 200);
+          this._timers.push(id);
         }
       }
     }
@@ -82,7 +84,11 @@ export class IceBoss {
 
   takeDamage(amount) {
     this.hp -= amount;
-    if (this.hp <= 0) { this.hp = 0; this.dead = true; this.defeated = true; }
+    if (this.hp <= 0) {
+      this.hp = 0; this.dead = true; this.defeated = true;
+      for (const id of this._timers) clearTimeout(id);
+      this._timers = [];
+    }
   }
 
   render(ctx, time) {
