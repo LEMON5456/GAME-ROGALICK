@@ -1,11 +1,8 @@
 import { Game } from './core/Game.js';
 import { sprites } from './core/Sprites.js';
 import { planetIcons } from './core/PlanetIcons.js';
-import { effectSheets } from './core/EffectSheets.js';
-import { fxSheets } from './core/FXSheets.js';
-import { metalTiles } from './core/MetalTiles.js';
-import { iceTiles } from './core/IceTiles.js';
-import { lavaTiles } from './core/LavaTiles.js';
+import { effectSheets, fxSheets } from './core/SheetManager.js';
+import { metalTiles, iceTiles, lavaTiles } from './core/TileManager.js';
 import { loadArrowSprite } from './entities/Projectile.js';
 import { loadOrcSheet } from './entities/Enemy.js';
 

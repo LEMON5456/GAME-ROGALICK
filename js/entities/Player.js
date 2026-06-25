@@ -1,6 +1,6 @@
 import { PHYSICS, COMBAT, COLORS } from '../constants.js';
 import { moveWithCollisions, isOnGround } from '../world/Physics.js';
-import { fxSheets } from '../core/FXSheets.js';
+import { fxSheets } from '../core/SheetManager.js';
 import { Animation } from '../core/Animations.js';
 import { audio } from '../core/Audio.js';
 import { drawShadow } from '../core/Shadow.js';

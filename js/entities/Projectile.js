@@ -1,6 +1,6 @@
 import { COMBAT, COLORS } from '../constants.js';
 import { sprites, SPRITES } from '../core/Sprites.js';
-import { effectSheets } from '../core/EffectSheets.js';
+import { effectSheets } from '../core/SheetManager.js';
 
 const BIOME_SHEET = { space: 'purple', ice: 'water', lava: 'fire' };
 

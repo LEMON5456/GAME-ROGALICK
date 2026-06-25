@@ -1,10 +1,9 @@
 import { TILE, TILE_SIZE, COLORS, TUNNEL } from '../constants.js';
 import { sprites, SPRITES } from '../core/Sprites.js';
-import { fxSheets } from '../core/FXSheets.js';
-import { metalTiles } from '../core/MetalTiles.js';
-import { getBiome } from '../data/biomes.js';
-import { iceTiles } from '../core/IceTiles.js';
-import { lavaTiles } from '../core/LavaTiles.js';
+import { fxSheets } from '../core/SheetManager.js';
+import { metalTiles, iceTiles, lavaTiles } from '../core/TileManager.js';
+import { sprites } from '../core/Sprites.js';
+import { fxSheets } from '../core/SheetManager.js';
 
 export class TileMap {
   constructor(width, height, biome = 'space') {

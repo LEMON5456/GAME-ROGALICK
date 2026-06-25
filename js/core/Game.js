@@ -20,7 +20,7 @@ import { COLORS, PLANET_TIMER, TILE, TILE_SIZE, TUNNEL } from '../constants.js';
 import { placeEntitySafely, isOnGround, aabbOverlap } from '../world/Physics.js';
 import { SaveManager } from './SaveManager.js';
 import { audio } from './Audio.js';
-import { iceTiles } from './IceTiles.js';
+import { iceTiles } from './TileManager.js';
 import { Lighting } from './Lighting.js';
 import { getBiome } from '../data/biomes.js';
 import { renderProjectile } from '../entities/Projectile.js';
@@ -30,7 +30,7 @@ import { Crate } from '../entities/Crate.js';
 import { generateEvents, initEventEnemy } from '../events/RandomEvents.js';
 import { FloatingText } from '../entities/FloatingText.js';
 import { BackgroundImage } from './BackgroundImage.js';
-import { fxSheets } from './FXSheets.js';
+import { fxSheets } from './SheetManager.js';
 
 const STATE = {
   MENU: 'menu',
